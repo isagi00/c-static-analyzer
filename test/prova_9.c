@@ -1,4 +1,4 @@
-typedef unsigned long ulong;
+typedef unsigned long ulong, *ulong2;
 typedef struct {
     int x;
     int y;
@@ -13,10 +13,8 @@ int main(int argc, char *argv[]){
     extern const int f;
     ulong g = 100;
     Punto p;
+    ulong2 ulo;
     
-    //1 bisogna controllare il valore associato alla variabile?
-    int test = 10;
-    char* c[5] = "12345 6"; //matrici
 
     
     //variabili multiple ?

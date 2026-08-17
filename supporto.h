@@ -46,5 +46,7 @@ bool isAssegnazioneValida(char* str, List* vars);
 
 void stampaStructDef(StructDef* sd) ;
 _Bool ricerca_array(char *str, const char *arr[]);
+
+void elimina_asterischi(char *str);
 #endif
 //fine include guard

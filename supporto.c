@@ -680,7 +680,7 @@ bool isAssegnazioneValida(char* str, List* vars){
 	//lhs
 	bool lhs_valido = false;
 	int n_lhs;
-	char** left = split(lhs, " \t,", &n_lhs);
+	char** left = split(lhs, " \t,.", &n_lhs);	//. per caso: 'struct.var = 10'
 	for (int l = 0; l < n_lhs; l++){
 		char* attuale = left[l];
 		for (int i = 0; i<vars->numero_elementi_attuali; i++){
@@ -801,4 +801,15 @@ _Bool ricerca_array(char *str, const char *arr[]){
 	}
 	return 0;
 	
+}
+
+/*
+rimpiazza asterischi con spazi in-place
+*/
+void elimina_asterischi(char *str){
+	for (int i = 0; i < strlen(str); i++){
+		if (str[i] == '*'){
+			str[i] = ' ';
+		}
+	}
 }

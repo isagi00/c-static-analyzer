@@ -22,20 +22,26 @@ data una parola, ritorna se la parola è equivalente a un tipo valido.
 ritorna true se la parola data è una dichiarazione di tipo corretto.
 */
 bool controlloTipo(char* parola, List* struct_definite){
+	//FORSE: ELIMINA * e [] dalla parola
+	char* copia = strdup(parola);
+	elimina_asterischi(copia);
+	char* pulito = eliminaSpaziDxSx_v2(copia);
+	// printf("[controllloTipo] check sul tipo '%s'\n", pulito);
+
 	//caso: 'char'
-	if(strcmp(parola,"char")==0){
+	if(strcmp(pulito,"char")==0){
 		return true;
 	}
 	//casi: 'int' 'long' 'short
-	else if(strcmp(parola,"int")==0 || strcmp(parola,"long")==0 || strcmp(parola,"short")==0){
+	else if(strcmp(pulito,"int")==0 || strcmp(pulito,"long")==0 || strcmp(pulito,"short")==0){
         return true;
     }
 	//casi: 'float', 'double'
-	else if(strcmp(parola,"float")==0 || strcmp(parola,"double")==0){
+	else if(strcmp(pulito,"float")==0 || strcmp(pulito,"double")==0){
         return true;
     }
 	//caso: 'bool'
-	else if(strcmp(parola,"bool")==0){
+	else if(strcmp(pulito,"bool")==0){
         return true;
     }
 
@@ -44,7 +50,7 @@ bool controlloTipo(char* parola, List* struct_definite){
 		for (int i = 0; i < struct_definite->numero_elementi_attuali; i++){
 			StructDef* sd = list_get(struct_definite,i);
 			for(int j = 0; j< sd->numero_alias; j++){
-				if(strcmp(parola, sd->alias[j]) == 0){
+				if(strcmp(pulito, sd->alias[j]) == 0){
 					printf("[controllotipo] variabile di tipo definito dall'utente '%s'\n", sd->alias[j]);
 					return true;
 				}
@@ -85,7 +91,7 @@ controlla se il nome della variabile dichirata è consentita.
 - parola: nome della variabile : es. 'var'
 ritorna true se il nome della variabile dichiarata è valida.
 */
-bool controllaNome(char* parola){
+bool controllaNome(char* parola, Statistiche* stat){
 	if (parola == NULL || strlen(parola) == 0){
 		printf("[controlloNome] nome vuoto o NULL. \n");
 		return false;
@@ -107,6 +113,7 @@ bool controllaNome(char* parola){
 			if(!isalpha(pulito[i])  && pulito[i] != '_'){ 
 				printf("[controllaNome] il nome della variabile non può iniziare con '%c'. \n", pulito[i]);
 				free(copia);
+				stat->nomi_variabili_non_corretti++;
 				return false;
 			}
 		}
@@ -115,6 +122,7 @@ bool controllaNome(char* parola){
 			if(!isalnum(pulito[i]) && pulito[i] != '_'){
 				printf("[controllaNome] carattere '%c' non può essere nome variabile. \n", pulito[i]);
 				free(copia);
+				stat->nomi_variabili_non_corretti++;
 				return false;
 			}
 		}
@@ -124,6 +132,7 @@ bool controllaNome(char* parola){
 	if (is_keyword(pulito)) {
 		printf("[controllaNome] '%s' è una parola chiave riservata.\n", pulito);
         free(copia);
+		stat->nomi_variabili_non_corretti++;
         return false;
 	}
 
@@ -136,7 +145,7 @@ bool controllaNome(char* parola){
 controlla se l'alias di una struct è valida o non.
 ritorna il nome dell'alias valido
 */
-bool controllaNomeAliasStruct(char* nome){
+bool controllaNomeAliasStruct(char* nome, Statistiche* stat){
 	if (!nome || strlen(nome) == 0) return false;
 
 	char* copia = strdup(nome);
@@ -159,10 +168,10 @@ bool controllaNomeAliasStruct(char* nome){
 	}
 	char* alias_pulito = eliminaSpaziDxSx_v2(alias);
 	alias_pulito[strlen(alias_pulito)] = '\0';
-	bool risultato = controllaNome(alias_pulito);
+	bool risultato = controllaNome(alias_pulito, stat);
 	free(copia);
 	if(risultato){
-		printf("controllaNomeAliasStruct: nome valido: '%s' -> alias: '%s'\n", pulito, alias_pulito);
+		// printf("controllaNomeAliasStruct: nome valido: '%s' -> alias: '%s'\n", pulito, alias_pulito);
 	}
 	else{
 		printf("controllaNomeAliasStruct: nome non valido: '%s' -> alias: '%s'\n", pulito, alias_pulito);
@@ -178,13 +187,12 @@ bool controllaNomeAliasStruct(char* nome){
 	- 'typedef struct { ... } alias1, *alias2;
 	- typedef multilinea tramite buffer
  */
-StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
+StructDef* parseTypedefStruct(char* buffer, int riga_inizio, Statistiche* stat){
 	if (!buffer) return NULL;
 
 	char* str = eliminaSpaziDxSx_v2(buffer);
 	if (!str) return NULL;
 	//check su 'typedef struct'
-	//todo : typedefy ritornerebbe true
 	if (strncmp(str, "typedef ", 8) != 0){
 		free(str);
 		return NULL;
@@ -195,7 +203,7 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 		free(str);
 		return NULL;
 	}
-	printf("[parsetypedef]: ok 'typedef struct' alla riga: %i\n", riga_inizio);
+	printf("[parsetypedefstruct]: ok 'typedef struct' alla riga: %i\n", riga_inizio);
 	
 	//crea il StructDef, con [tag] e alias
 	StructDef* sd = struct_create();
@@ -218,7 +226,7 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 
 	//deve esserci '{'
 	if(*ptr != '{'){
-		printf("[parsetypedef] manca '{' alla riga %i\n", riga_inizio);
+		printf("[parsetypedefstruct] manca '{' alla riga %i\n", riga_inizio);
 		struct_free(sd);
 		free(str);
 		return NULL;
@@ -227,13 +235,13 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 	//trova '}'
 	char* close_brace = strchr(ptr, '}');
 	if (!close_brace){
-		printf("[parsetypedef] manca '}' alla riga %i\n", riga_inizio);
+		printf("[parsetypedefstruct] manca '}' alla riga %i\n", riga_inizio);
 		struct_free(sd);
 		free(str);
 		return NULL;
 	}
 	if (close_brace < ptr){
-		printf("[parsetypedef] '}' prima di '{' durante la dichiarazione del typedef alla riga:  %i\n", riga_inizio);
+		printf("[parsetypedefstruct] '}' prima di '{' durante la dichiarazione del typedef alla riga:  %i\n", riga_inizio);
 		struct_free(sd);
 		free(str);
 		return NULL;
@@ -246,7 +254,7 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 	//deve finire con ';'
 	char* semi = strchr(ptr, ';');
 	if (!semi){
-		printf("[parsetypedef] manca ';' alla riga %i\n", riga_inizio);
+		printf("[parsetypedefstruct] manca ';' alla riga %i\n", riga_inizio);
 		struct_free(sd);
 		free(str);
 		return NULL;
@@ -258,7 +266,7 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 	int n_token;
 	char** tokens = split(alias_str, ",", &n_token);
 	if (n_token == 0){
-		printf("[parsetypedef] nessun alias per la struct alla riga: %i\n", riga_inizio);
+		printf("[parsetypedefstruct] nessun alias per la struct alla riga: %i\n", riga_inizio);
 		free(tokens);
 		free(alias_str);
 		struct_free(sd);
@@ -270,13 +278,13 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 	int validi = 0;
 	for (int i = 0; i<n_token; i++){
 		char* pulito = eliminaSpaziDxSx_v2(tokens[i]);
-		if (pulito && strlen(pulito) > 0 && controllaNomeAliasStruct(pulito)){
+		if (pulito && strlen(pulito) > 0 && controllaNomeAliasStruct(pulito,stat)){
 			validi++;
 		}
 		free(pulito);
 	}
 	if(validi == 0){
-		printf("[parsetypedef] nessun alias valido per la struct alla riga: %i\n", riga_inizio);
+		printf("[parsetypedefstruct] nessun alias valido per la struct alla riga: %i\n", riga_inizio);
 		free(tokens);
 		free(alias_str);
 		struct_free(sd);
@@ -292,7 +300,7 @@ StructDef* parseTypedefStruct(char* buffer, int riga_inizio){
 	int idx = 0;
 	for (int i = 0; i < validi && idx < validi; i++){
 		char* pulito = eliminaSpaziDxSx_v2(tokens[i]);
-		if(pulito && strlen(pulito) > 0 && controllaNomeAliasStruct(pulito)){
+		if(pulito && strlen(pulito) > 0 && controllaNomeAliasStruct(pulito,stat)){
 			sd->alias[idx] = strdup(pulito);
 			idx++;
 		}
@@ -319,7 +327,7 @@ gestisce anche il caso in cui si ha come argomento 'void'
 ritorna true se gliu argomenti sono corretti.
 */
 
-bool controlloArgomentiMain(char* args){
+bool controlloArgomentiMain(char* args, Statistiche* stat){
 	if (args == NULL) return false;
 
 	//copia modificabile di args
@@ -359,7 +367,7 @@ bool controlloArgomentiMain(char* args){
 	//deve avere esattamente 2 token: 'int' + 'nome_valido'
 	bool ok_primaparte = (numero_token_prima_parte == 2 &&
 						  strcmp(tokens_prima_parte[0],"int") == 0 &&
-						  controllaNome(tokens_prima_parte[1]));
+						  controllaNome(tokens_prima_parte[1],stat));
 	free(tokens_prima_parte);
 	if (!ok_primaparte){
 		free(copia);
@@ -419,7 +427,7 @@ bool controlloArgomentiMain(char* args){
 	}
 	//estrai e valida nome
 	char* nome_var = strndup(&seconda_parte[inizio_nome], len_nome);
-	if (!nome_var || !controllaNome(nome_var)){
+	if (!nome_var || !controllaNome(nome_var, stat)){
 		free(nome_var);
 		free(copia);
 		free(parti);
@@ -597,75 +605,75 @@ bool controlloValoreAssegnato(char* valore,char* tipo){
 /*
 controlla [tipo composto da 2] + nome
 */
-_Bool controllaLongShort_tre_sessione(char** parti_var) {
+_Bool controllaLongShort_tre_sessione(char** parti_var, Statistiche* stat) {
     return (
 		// casi con "long" prima
     	strcmp(parti_var[0], "long") == 0 && (
     	// "long long a"
-    	(strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2])) ||
+    	(strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
     	// "long int a"
-    	(strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2])) ||
+    	(strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2], stat)) ||
     	// "long double a"
-        (strcmp(parti_var[1], "double") == 0 && controllaNome(parti_var[2]))
+        (strcmp(parti_var[1], "double") == 0 && controllaNome(parti_var[2], stat))
     	) ||
 
     	// "unsigned long a"
-    	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2])) ||
+    	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
     	// "signed long a"
-		(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2])) ||
+		(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
 
     	// casi con "short" prima
     	strcmp(parti_var[0], "short") == 0 && (
     	// "short int a"
-        (strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2]))) ||
+        (strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2], stat))) ||
 
     	// "unsigned short a"
-    	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2])) ||
+    	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2], stat)) ||
     	// "signed short a"
-    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2])) ||
+    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2],stat )) ||
 
 		// casi con char
-		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2])) ||
+		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2],stat)) ||
 		// "signed char a"
-    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2])) ||
+    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2], stat)) ||
 
 		// casi con int
-		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2])) ||
+		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2],stat)) ||
 		// "signed char a"
-    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2]))
+    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2],stat))
 	);
 }
 
 /*
 [tipo tipo tipo] nome
 */
-_Bool controllaLongShort_quattro_sessione(char** parti_var) {
+_Bool controllaLongShort_quattro_sessione(char** parti_var, Statistiche* stat) {
 	return (
         // "long long int a"
-        (strcmp(parti_var[0], "long") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3])) ||
+        (strcmp(parti_var[0], "long") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3],stat)) ||
         // "long long a" con unsigned/signed
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3])) ||
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3])) ||
+        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3], stat)) ||
+        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3], stat)) ||
         // "unsigned long int a"
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3])) ||
+        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
         // "signed long int a"
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3])) ||
+        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
         // "unsigned short int a"
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3])) ||
+        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
         // "signed short int a"
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3])) ||
+        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
         // "long int a" con signed
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3]))
+        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat))
 	);
 }
 
 //max numero di tipo dic
-_Bool controllaLongShort_cinque_sessione(char** parti_var) {
+_Bool controllaLongShort_cinque_sessione(char** parti_var, Statistiche* stat) {
     return (
         // "unsigned long long int a"
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4])) ||
+        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4], stat)) ||
         // "signed long long int a"
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4]))
+        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4],stat))
     );
 }
 
@@ -678,13 +686,14 @@ true per:
 4. '[qualificatore] [tipo] a = [valore]'
 5. '[storage] [qualificatore] [tipo] a = [valore]
 */
-bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite, List* var_dichiarate){
+bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite, List* var_dichiarate, Statistiche* stat){
 	if (!str) return false;
 	
 	//duplica e splitta 
 	int n_parti;
 	char* copia_str=strdup(str);	//"int a = 10"
 	//printf("\n %s \n",parole_copia);
+	// eliminaAsterischi()
 
     char** parti_var=split_variabile(copia_str,&n_parti);	// "int", "a", "10"
 	char** parti_var_copia = parti_var;
@@ -731,7 +740,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 	}
 	//caso: int, a
 	else if(n_parti==2){
-		risultato = (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1]));
+		risultato = (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat));
 		if (risultato){
 			Variabile* var = malloc(sizeof(Variabile));
 			var->nome = strdup(parti_var[1]);
@@ -746,7 +755,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 	}
 	//caso: int, a , 10
 	else if(n_parti==3){	//"int i = 10"
-		if (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1])){
+		if (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat)){
 			if (controlloValoreAssegnato(parti_var[2], parti_var[0])){
 				risultato = true;
 				if (risultato) {
@@ -765,7 +774,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 			}
 		}
 		// long, long, a
-		else if(controllaLongShort_tre_sessione(parti_var))
+		else if(controllaLongShort_tre_sessione(parti_var, stat))
     	{
 			risultato=true;
 			if (risultato){
@@ -790,7 +799,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 	else if(n_parti==4){	//"short int a=10" "long int a=10" "unsigned int a=10"  "unsigned short"
 		if(strchr(str,'=')){ //se ci sta uguale, var con assegnazione 'long long nome = 1'
 			//[long int a = 10]
-			risultato=(controllaLongShort_tre_sessione(parti_var));
+			risultato=(controllaLongShort_tre_sessione(parti_var, stat));
 			if (risultato){
 				char buffer_tipo[256] = {0};
 				strcat(buffer_tipo, parti_var[0]);
@@ -809,7 +818,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 		}
 		else{ //var senza assegnazione 'unsigned long long nome;
 			//unsigned long long a;
-			risultato=controllaLongShort_quattro_sessione(parti_var);
+			risultato=controllaLongShort_quattro_sessione(parti_var,stat);
 			if (risultato){
 				char buffer_tipo[256] = {0};
 				strcat(buffer_tipo, parti_var[0]);
@@ -831,7 +840,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 	}
 	else if(n_parti == 5){	//"unsigned short int a = 10" "long long int a=10"
 		if(strchr(str,'=')){
-			risultato = controllaLongShort_quattro_sessione(parti_var); //unsigned long long a = 10
+			risultato = controllaLongShort_quattro_sessione(parti_var,stat); //unsigned long long a = 10
 			if (risultato){
 				char buffer_tipo[256] = {0};
 				strcat(buffer_tipo, parti_var[0]);
@@ -853,7 +862,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 		}
 		else{ //unsigned long long int a;
 			//unsigned long long int a;
-			risultato = controllaLongShort_cinque_sessione(parti_var);
+			risultato = controllaLongShort_cinque_sessione(parti_var,stat);
 			if (risultato){
 				char buffer_tipo[256] = {0};
 				strcat(buffer_tipo, parti_var[0]);
@@ -877,7 +886,7 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 	}
 	else if(n_parti == 6){	//"unsigned long long a = 10"
 		if(ricerca(str,"=")){
-			risultato = controllaLongShort_cinque_sessione(parti_var);
+			risultato = controllaLongShort_cinque_sessione(parti_var,stat);
 			if (risultato){
 				char buffer_tipo[256] = {0};
 				strcat(buffer_tipo, parti_var[0]);
@@ -964,10 +973,14 @@ controlla se il tipo del typedef è valido:
 es: typedef [tipo] [alias1, alias2, alias3 ...]
 ritorna true.
 */
-bool controllaTipoENomeTypedef(char* str, int n_riga){
+bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite){
     if (!str) return false;
 
     char* copia = strdup(str);
+	//TEST: elimina completamente gli asterischi
+	elimina_asterischi(copia);
+	// printf("[controllaTipoENomeTypedef] copia senza asterischi: '%s'\n", copia);
+
     if (!copia) return false;
 
 	//1. tipo + alias principale
@@ -998,7 +1011,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga){
 	bool tipo_valido = false;
 
     if (n_tokens == 2){ //int alias
-        tipo_valido = controlloTipiBase(tokens[0]) && controllaNomeAliasStruct(tokens[1]);
+        tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1]);
     }
     else if (n_tokens == 3){	//long long alias
         tipo_valido = controllaLongShort_tre_sessione(tokens);
@@ -1034,7 +1047,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga){
 parsing per 'typedef [tipo] [alias]' singola linea, senza struct
 ritorna una StructDef*
 */
-StructDef* parseTypeDef(char* clean, int n_riga){
+StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite){
 	//verifica che il primo token sia 'typedef' e non 'typedefsss'
 	int n_token;
 	char** tokens = split(clean, " \t;", &n_token);
@@ -1046,6 +1059,10 @@ StructDef* parseTypeDef(char* clean, int n_riga){
 		printf("[parseTypeDef] dichiarazione typedef non corretto alla riga: %i", n_riga);
 		return NULL;
 	}
+	//se entra scorrettamente per typedef struct
+	if (strcmp(tokens[1], "struct") == 0){
+		return NULL;
+	}
 
 	//ricostruisci tutto dopo "typedef"
 	char buffer[1024] = {0};
@@ -1053,7 +1070,7 @@ StructDef* parseTypeDef(char* clean, int n_riga){
 		strcat(buffer, tokens[i]);
 		strcat(buffer, " ");
 	}
-	if (!controllaTipoENomeTypedef(buffer, n_riga)){
+	if (!controllaTipoENomeTypedef(buffer, n_riga, struct_definite)){
 		printf("[parseTypeDef] typedef invalido alla riga: %i", n_riga);
 		return NULL;
 	}
@@ -1240,23 +1257,6 @@ List* check_file(char* filename, Statistiche* stats){
 			continue;
 		}
 
-		//rileva typedef [tipo] [nome];
-		if (strncmp(clean, "typedef", 7) == 0){
-			StructDef* sd = parseTypeDef(clean, n_riga);
-			if (sd){
-				list_append(struct_definite, sd);
-				printf("[checkfile]typedef valido alla riga %i\n", n_riga);
-				n_riga++;
-				continue;
-			} 
-			else {
-				printf("[checkfile] typedef non valido alla riga %i\n ", n_riga);
-				stats->errori_rilevati++;
-				n_riga++;
-				continue;
-			}
-
-		}
 		//rileva inizio typedef struct
 		if (!in_struct && check_typedef_struct(clean)){
 			printf("[checkfile]inizio 'typedef struct' alla riga %i \n", n_riga);
@@ -1297,6 +1297,23 @@ List* check_file(char* filename, Statistiche* stats){
 			free(clean);
 			n_riga++;
 			continue;
+		}
+
+		//rileva typedef [tipo] [nome];
+		if (strncmp(clean, "typedef", 7) == 0){
+			StructDef* sd = parseTypeDef(clean, n_riga, struct_definite);
+			if (sd){
+				list_append(struct_definite, sd);
+				printf("[checkfile]typedef valido alla riga %i\n", n_riga);
+				n_riga++;
+				continue;
+			} 
+			else {
+				printf("[checkfile] typedef non valido alla riga %i\n ", n_riga);
+				stats->errori_rilevati++;
+				n_riga++;
+				continue;
+			}
 		}
 		
 
@@ -1381,6 +1398,7 @@ List* check_file(char* filename, Statistiche* stats){
 
 			}
 			else{
+				stats->variabili_controllate++;
 				stats->errori_rilevati++; //errori contati separatamente
 				printf("[checkfile] variabile non valida '%s' alla riga %i\n", pulito, n_riga);
 			}
@@ -1410,7 +1428,11 @@ List* check_file(char* filename, Statistiche* stats){
 
 	for (int s = 0; s < struct_definite->numero_elementi_attuali; s++){
 		StructDef* sd = list_get(struct_definite, s);
-		stampaStructDef(sd);
+		for (int j = 0; j < sd->numero_alias; j++){
+			char* alias = sd->alias[j];
+			printf("STRUCT: alias : %s, numero alias: %d", alias, sd->numero_alias);
+		}
+		printf("\n");
 	}
 
 	return var_dichiarate;
