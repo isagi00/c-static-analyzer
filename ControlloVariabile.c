@@ -922,7 +922,7 @@ controlla se la riga corrente è una valida dichiarazione del main().
 -riga: riga attuale
 ritorna true se è una valida dichiarazione di main. es: "int main (int argc, char* argv[])"
 */
-bool isMain(char* riga) {
+bool isMain(char* riga, Statistiche* stats) {
 	if(riga == NULL) return false;
 
 	//trova parentesi e valida che sono nell'ordine corretto
@@ -961,7 +961,7 @@ bool isMain(char* riga) {
 	}
 	else{
 		//casi: 'int main(int <nome>, char* <nome>[])'	... 
-		ok_args = controlloArgomentiMain(args);
+		ok_args = controlloArgomentiMain(args, &stats);
 	}
 
 	free(args);
@@ -973,7 +973,7 @@ controlla se il tipo del typedef è valido:
 es: typedef [tipo] [alias1, alias2, alias3 ...]
 ritorna true.
 */
-bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite){
+bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite, Statistiche* stats){
     if (!str) return false;
 
     char* copia = strdup(str);
@@ -1002,7 +1002,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite){
     // ultimo token = alias
     char* alias_principale = tokens[n_tokens - 1];
 
-    if (!controllaNomeAliasStruct(alias_principale)){
+    if (!controllaNomeAliasStruct(alias_principale, &stats)){
         free(copia);
         free(tokens);
         return false;
@@ -1011,16 +1011,16 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite){
 	bool tipo_valido = false;
 
     if (n_tokens == 2){ //int alias
-        tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1]);
+        tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1], &stats);
     }
     else if (n_tokens == 3){	//long long alias
-        tipo_valido = controllaLongShort_tre_sessione(tokens);
+        tipo_valido = controllaLongShort_tre_sessione(tokens, &stats);
     }
     else if (n_tokens == 4){	//unsigned long long alias
-        tipo_valido = controllaLongShort_quattro_sessione(tokens);
+        tipo_valido = controllaLongShort_quattro_sessione(tokens, &stats);
     }
     else if (n_tokens == 5){	//unsigned long long int alias
-        tipo_valido = controllaLongShort_cinque_sessione(tokens);
+        tipo_valido = controllaLongShort_cinque_sessione(tokens, &stats);
     }
 
     if (!tipo_valido){
@@ -1033,7 +1033,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite){
 	//typedef tipo alias1, 'alias2'
     for (int i = 1; i < n_parti; i++){
         char* alias = eliminaSpaziDxSx_v2(parti[i]);
-        if (!controllaNomeAliasStruct(alias)){
+        if (!controllaNomeAliasStruct(alias, &stats)){
             free(copia); free(tokens);
             return false;
         }
@@ -1047,7 +1047,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite){
 parsing per 'typedef [tipo] [alias]' singola linea, senza struct
 ritorna una StructDef*
 */
-StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite){
+StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite, Statistiche* stats){
 	//verifica che il primo token sia 'typedef' e non 'typedefsss'
 	int n_token;
 	char** tokens = split(clean, " \t;", &n_token);
@@ -1070,7 +1070,7 @@ StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite){
 		strcat(buffer, tokens[i]);
 		strcat(buffer, " ");
 	}
-	if (!controllaTipoENomeTypedef(buffer, n_riga, struct_definite)){
+	if (!controllaTipoENomeTypedef(buffer, n_riga, struct_definite, &stats)){
 		printf("[parseTypeDef] typedef invalido alla riga: %i", n_riga);
 		return NULL;
 	}
@@ -1104,7 +1104,7 @@ StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite){
 		else{
 			alias = strdup(p);
 		}
-		if (alias && controllaNomeAliasStruct(alias)){
+		if (alias && controllaNomeAliasStruct(alias, &stats)){
 			sd->alias[sd->numero_alias++] = alias;
 		}
 	}
@@ -1262,7 +1262,7 @@ List* check_file(char* filename, Statistiche* stats){
 			printf("[checkfile]inizio 'typedef struct' alla riga %i \n", n_riga);
 			//caso in cui il typedef struct avviene su unica riga, quindi ci sta '}'
 			if (strchr(clean, '}')){
-				StructDef* sd = parseTypedefStruct(clean, n_riga);
+				StructDef* sd = parseTypedefStruct(clean, n_riga, &stats);
 				if (sd) list_append(struct_definite, sd);
 				else stats->errori_rilevati++;
 			}
@@ -1283,7 +1283,7 @@ List* check_file(char* filename, Statistiche* stats){
 			strcat(struct_buffer, " ");		//spazio dopo la riga
 			//controlla se è terminato 
 			if (strchr(clean, '}') && strchr(clean, ';')){
-				StructDef* sd = parseTypedefStruct(struct_buffer, riga_inizio_struct);
+				StructDef* sd = parseTypedefStruct(struct_buffer, riga_inizio_struct, &stats);
 				if (sd){
 					list_append(struct_definite, sd);
 					printf("[checkfile] strcut multiriga completato alla riga %i\n", n_riga);
@@ -1301,7 +1301,7 @@ List* check_file(char* filename, Statistiche* stats){
 
 		//rileva typedef [tipo] [nome];
 		if (strncmp(clean, "typedef", 7) == 0){
-			StructDef* sd = parseTypeDef(clean, n_riga, struct_definite);
+			StructDef* sd = parseTypeDef(clean, n_riga, struct_definite, &stats);
 			if (sd){
 				list_append(struct_definite, sd);
 				printf("[checkfile]typedef valido alla riga %i\n", n_riga);
@@ -1346,13 +1346,13 @@ List* check_file(char* filename, Statistiche* stats){
 			}
 		
 			//controllo dichiarazione main() e gestione main() duplicato
-			if (!main_dichiarato && isMain(pulito)){
+			if (!main_dichiarato && isMain(pulito, &stats)){
 				printf("[checkfile] dichiarazione main() corretta alla riga: %i\n", n_riga);
 				main_dichiarato = true;
 				free(pulito);
 				continue;
 			}
-			else if(main_dichiarato && isMain(pulito)){
+			else if(main_dichiarato && isMain(pulito, &stats)){
 				stats -> errori_rilevati++;
 				printf("[checkfile] dichiarato un altro main alla riga: %i\n", n_riga);
 				free(pulito);
@@ -1390,7 +1390,7 @@ List* check_file(char* filename, Statistiche* stats){
 			}
 
 			//controllo dichiarazione delle variabili
-			if(controllaDichiarazioneVariabile(pulito, n_riga, struct_definite, var_dichiarate)){
+			if(controllaDichiarazioneVariabile(pulito, n_riga, struct_definite, var_dichiarate, &stats)){
 				// Variabile
 				stats->variabili_controllate++;	//conta solo dichiarazione valida di var
 				printf("[checkfile] variabile valida '%s' alla riga %i\n", pulito, n_riga);
