@@ -9,10 +9,11 @@ int main() {
     int _ok;
     double also-bad;
     int fine123;
+
+    
     valid_name = 3.14;
     _ok = 1;
     fine123 = 123;
-    int a, b, c = 10;
 
     return 0;
 }

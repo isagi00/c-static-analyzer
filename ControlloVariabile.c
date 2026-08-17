@@ -47,7 +47,7 @@ bool controlloTipo(char* parola, List* struct_definite){
 
 	//gestisci casi per tipi definiti dall'utente
 	if (struct_definite){
-		for (int i = 0; i < struct_definite->numero_elementi_attuali; i++){
+		for (size_t i = 0; i < struct_definite->numero_elementi_attuali; i++){
 			StructDef* sd = list_get(struct_definite,i);
 			for(int j = 0; j< sd->numero_alias; j++){
 				if(strcmp(pulito, sd->alias[j]) == 0){
@@ -154,7 +154,7 @@ bool controllaNomeAliasStruct(char* nome, Statistiche* stat){
 	char alias[128] = {0};	//buffer per copiare alias
 	//copia nel buffer il nome dell'alias, saltando spazi. 
 	//se l'alias è un array viene trocata la parte dell'array.
-	for (int ptr = 0; ptr < strlen(pulito); ptr++){
+	for (size_t ptr = 0; ptr < strlen(pulito); ptr++){
 		if (pulito[ptr] == '['){	//alias[1024] termina su '['
 			break;
 		}
@@ -361,7 +361,7 @@ bool controlloArgomentiMain(char* args, Statistiche* stat){
 
 	//verifica di 'int <nome>'
 	char* prima_parte = eliminaSpaziDxSx(parti[0]);
-	int len_prima_parte = strlen(prima_parte);
+	// int len_prima_parte = strlen(prima_parte);
 	int numero_token_prima_parte;
 	char** tokens_prima_parte = split(prima_parte, " \t", &numero_token_prima_parte);
 	//deve avere esattamente 2 token: 'int' + 'nome_valido'
@@ -471,7 +471,7 @@ bool controlloArgomentiMain(char* args, Statistiche* stat){
 _Bool isInt(char* valore, bool isSigned){
     int i = 0;
     // salta il segno se c'è
-    if(valore[0] == '-' || valore[0] == '+' && isSigned) {
+    if( (valore[0] == '-') || (valore[0] == '+' && isSigned) ) {
         i = 1;
     }
 	else{
@@ -545,7 +545,7 @@ bool controlloValoreAssegnato(char* valore,char* tipo){
 	//int, long, short
 	else if(strcmp(tipo,"int")==0 || strcmp(tipo,"long")==0 || strcmp(tipo,"short")==0){ 
 
-        for(int i = 0; i <strlen(valore); i++){
+        for(size_t i = 0; i <strlen(valore); i++){
 			if(i== 0 && valore[i] == '"') return false;	//se inizia con " sicuramente è stringa, salta
 			if(i == 0 && (valore[i] == '+' || valore[i] == '-')) continue; // segno ok
        	 	if(valore[i] == ' ' || valore[i] == '\t') continue;	//salta spazi
@@ -740,6 +740,11 @@ bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite,
 	}
 	//caso: int, a
 	else if(n_parti==2){
+		
+		if (controlloTipo(parti_var[0], struct_definite) != 0){
+			stat->tipi_dato_scorretti++;
+		}
+		
 		risultato = (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat));
 		if (risultato){
 			Variabile* var = malloc(sizeof(Variabile));
@@ -961,7 +966,7 @@ bool isMain(char* riga, Statistiche* stats) {
 	}
 	else{
 		//casi: 'int main(int <nome>, char* <nome>[])'	... 
-		ok_args = controlloArgomentiMain(args, &stats);
+		ok_args = controlloArgomentiMain(args, stats);
 	}
 
 	free(args);
@@ -1002,7 +1007,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite, Sta
     // ultimo token = alias
     char* alias_principale = tokens[n_tokens - 1];
 
-    if (!controllaNomeAliasStruct(alias_principale, &stats)){
+    if (!controllaNomeAliasStruct(alias_principale, stats)){
         free(copia);
         free(tokens);
         return false;
@@ -1011,16 +1016,16 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite, Sta
 	bool tipo_valido = false;
 
     if (n_tokens == 2){ //int alias
-        tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1], &stats);
+        tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1], stats);
     }
     else if (n_tokens == 3){	//long long alias
-        tipo_valido = controllaLongShort_tre_sessione(tokens, &stats);
+        tipo_valido = controllaLongShort_tre_sessione(tokens, stats);
     }
     else if (n_tokens == 4){	//unsigned long long alias
-        tipo_valido = controllaLongShort_quattro_sessione(tokens, &stats);
+        tipo_valido = controllaLongShort_quattro_sessione(tokens, stats);
     }
     else if (n_tokens == 5){	//unsigned long long int alias
-        tipo_valido = controllaLongShort_cinque_sessione(tokens, &stats);
+        tipo_valido = controllaLongShort_cinque_sessione(tokens, stats);
     }
 
     if (!tipo_valido){
@@ -1033,7 +1038,7 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite, Sta
 	//typedef tipo alias1, 'alias2'
     for (int i = 1; i < n_parti; i++){
         char* alias = eliminaSpaziDxSx_v2(parti[i]);
-        if (!controllaNomeAliasStruct(alias, &stats)){
+        if (!controllaNomeAliasStruct(alias, stats)){
             free(copia); free(tokens);
             return false;
         }
@@ -1070,7 +1075,7 @@ StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite, Statisti
 		strcat(buffer, tokens[i]);
 		strcat(buffer, " ");
 	}
-	if (!controllaTipoENomeTypedef(buffer, n_riga, struct_definite, &stats)){
+	if (!controllaTipoENomeTypedef(buffer, n_riga, struct_definite, stats)){
 		printf("[parseTypeDef] typedef invalido alla riga: %i", n_riga);
 		return NULL;
 	}
@@ -1104,7 +1109,7 @@ StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite, Statisti
 		else{
 			alias = strdup(p);
 		}
-		if (alias && controllaNomeAliasStruct(alias, &stats)){
+		if (alias && controllaNomeAliasStruct(alias, stats)){
 			sd->alias[sd->numero_alias++] = alias;
 		}
 	}
@@ -1115,66 +1120,6 @@ StructDef* parseTypeDef(char* clean, int n_riga, List* struct_definite, Statisti
 	return sd;
 }
 
-
-
-/*
-controlla se la dichiarazione di if/else/while/for sia corretta
-token deve non avere spazi a sx.
-- token: stringa in forma "if (zh给)..."
-*/
-bool controllaStrutturaControllo(char* token, int riga, Statistiche* stats){
-	if (!token) return false;
-
-	const char* kw_controllo[] = {"if", "else", "for", "while", NULL};
-	bool kw_valido = false;
-	const char* kw_trovata = NULL;
-	
-	//controllo dichiarazione corretta kw
-	char* copia_token = strdup(token);
-	int n_str;
-	char** stringhe = split(copia_token, " {(",&n_str);	//splitta su 'if() -> if\0)', else{} -> else\0}, if (...) -> if\0(...)
-	if (n_str == 0){
-		free(stringhe);
-		free(copia_token);
-		return false;
-	}
-	char* kw = stringhe[0];
-	for(int i = 0; kw_controllo[i] != NULL; i++){
-		if (strcmp(kw, kw_controllo[i])== 0){
-			kw_valido = true;
-			kw_trovata = kw_controllo[i];
-			break;
-		}
-	}
-	//pulizia se kw non valido
-	if (!kw_valido){
-		free(copia_token);
-		return false;
-	} 
-
-	//se kw è else, ritorna true
-	if(strcmp(kw_trovata,"else") == 0){
-		free(copia_token);
-		printf("[ControlloVariabile] struttura '%s' valida alla riga %i\n", kw_trovata, riga);
-		return true;
-	}
-
-	//cerca le parentesi tonde e verifica se è corretto
-	char* paren_aperta = strchr(token, '(');
-	char* paren_chiusa = strchr(token, ')');
-	bool ok_parentesi = (paren_aperta && paren_chiusa && paren_aperta < paren_chiusa);
-	if(!ok_parentesi){
-		printf("[ControlloVariabile] ERRORE: '%s' senza parentesi valide alla riga %i\n", kw_trovata, riga);
-		stats->errori_rilevati++;
-		return false;
-	}
-	else{
-		printf("[ControlloVariabile] struttura '%s' valida alla riga %i\n", kw_trovata, riga);
-	}
-
-	free(copia_token);
-	return ok_parentesi;
-}	
 
 /*
 la funzione controlla la correttezza di:
@@ -1197,8 +1142,6 @@ List* check_file(char* filename, Statistiche* stats){
 	int n_graffe = 0;
 	bool main_dichiarato = false;
 
-	bool in_commento_multiplo = false;
-
 	bool in_struct = false;
 	List* struct_definite = list_create();
 	char struct_buffer[4028] = {0}; //buffer per accumulare righe se struct righe multiple
@@ -1210,18 +1153,6 @@ List* check_file(char* filename, Statistiche* stats){
 	while (fgets(riga, sizeof(riga), file) != NULL){
 		//rimpiazza \n con \0
 		riga[strcspn(riga, "\n")] = '\0';
-
-		//salta commenti se stiamo in un commento multilinea
-		if(in_commento_multiplo){
-			if (strstr(riga, "*/") != NULL){	//se è stato chiuso il commento resetta flag
-				in_commento_multiplo = false;
-			}
-			n_riga++;	
-			continue;	//salta riga corrente
-		}
-
-		//rimuovi spazi dx e sx, elimina commenti inline del tipi "int a = 0; //commento"
-		rimuoviCommentoInline(riga);
 		char* clean = eliminaSpaziDxSx_v2(riga);
 		
 		//salta righe vuote
@@ -1230,39 +1161,19 @@ List* check_file(char* filename, Statistiche* stats){
 			continue;
 		}
 
-		//salta le righe dopo  commenti del tipo ' /* .... */ '
-		if (strlen(clean) >= 2 && clean[0] == '/' && clean[1] == '*' ){
-			in_commento_multiplo = true;
-			n_riga++;
-			continue; 	//salta la riga corrente
-		}
-
 		//conta graffe della riga
-		for(int k = 0; k < strlen(clean); k++){
+		for(size_t k = 0; k < strlen(clean); k++){
 			if (clean[k] == '{') n_graffe++;
 			else if(clean[k] == '}') n_graffe--;
 		}
 
-		//controlla for , prima dello split su '{};'.
-		//altrimenti esplode su 'for(int i=0; i< qualcosa; i++){...}'
-		if (strncmp(clean, "for", 3) == 0){
-			if(controllaStrutturaControllo(clean, n_riga, stats)){
-				//se valido salta
-			}
-			else{
-				stats->errori_rilevati++;
-			}
-			free(clean);
-			n_riga++;
-			continue;
-		}
 
 		//rileva inizio typedef struct
 		if (!in_struct && check_typedef_struct(clean)){
 			printf("[checkfile]inizio 'typedef struct' alla riga %i \n", n_riga);
 			//caso in cui il typedef struct avviene su unica riga, quindi ci sta '}'
 			if (strchr(clean, '}')){
-				StructDef* sd = parseTypedefStruct(clean, n_riga, &stats);
+				StructDef* sd = parseTypedefStruct(clean, n_riga, stats);
 				if (sd) list_append(struct_definite, sd);
 				else stats->errori_rilevati++;
 			}
@@ -1277,13 +1188,15 @@ List* check_file(char* filename, Statistiche* stats){
 			n_riga++;
 			continue;
 		}
+
+
 		//buffering struct multiriga
 		if (in_struct){
 			strcat(struct_buffer, clean);	//aggiungi la riga nel buffer
 			strcat(struct_buffer, " ");		//spazio dopo la riga
 			//controlla se è terminato 
 			if (strchr(clean, '}') && strchr(clean, ';')){
-				StructDef* sd = parseTypedefStruct(struct_buffer, riga_inizio_struct, &stats);
+				StructDef* sd = parseTypedefStruct(struct_buffer, riga_inizio_struct, stats);
 				if (sd){
 					list_append(struct_definite, sd);
 					printf("[checkfile] strcut multiriga completato alla riga %i\n", n_riga);
@@ -1301,7 +1214,7 @@ List* check_file(char* filename, Statistiche* stats){
 
 		//rileva typedef [tipo] [nome];
 		if (strncmp(clean, "typedef", 7) == 0){
-			StructDef* sd = parseTypeDef(clean, n_riga, struct_definite, &stats);
+			StructDef* sd = parseTypeDef(clean, n_riga, struct_definite, stats);
 			if (sd){
 				list_append(struct_definite, sd);
 				printf("[checkfile]typedef valido alla riga %i\n", n_riga);
@@ -1311,6 +1224,9 @@ List* check_file(char* filename, Statistiche* stats){
 			else {
 				printf("[checkfile] typedef non valido alla riga %i\n ", n_riga);
 				stats->errori_rilevati++;
+				int* ptr_riga = malloc(sizeof(int));
+				*ptr_riga = n_riga;
+				list_append(stats->righe_errore, ptr_riga);
 				n_riga++;
 				continue;
 			}
@@ -1328,12 +1244,6 @@ List* check_file(char* filename, Statistiche* stats){
 			continue;
 		}
 
-		//salta commenti e include
-		if(controllaRigaCommento(tokens[0]) || controllaRigaInclude(tokens[0])){
-			n_riga ++;
-			continue;
-		}
-
 		//processa ogni token
 		for(int i = 0; i < n_tokens; i++){
 			// un token è del tipo: "int test = 0"
@@ -1346,14 +1256,17 @@ List* check_file(char* filename, Statistiche* stats){
 			}
 		
 			//controllo dichiarazione main() e gestione main() duplicato
-			if (!main_dichiarato && isMain(pulito, &stats)){
+			if (!main_dichiarato && isMain(pulito, stats)){
 				printf("[checkfile] dichiarazione main() corretta alla riga: %i\n", n_riga);
 				main_dichiarato = true;
 				free(pulito);
 				continue;
 			}
-			else if(main_dichiarato && isMain(pulito, &stats)){
+			else if(main_dichiarato && isMain(pulito, stats)){
 				stats -> errori_rilevati++;
+				int* ptr_riga = malloc(sizeof(int));
+				*ptr_riga = n_riga;
+				list_append(stats->righe_errore, ptr_riga);
 				printf("[checkfile] dichiarato un altro main alla riga: %i\n", n_riga);
 				free(pulito);
 				continue;
@@ -1364,6 +1277,9 @@ List* check_file(char* filename, Statistiche* stats){
 				// printf("[ControlloVariabile] attualmente nel controllo del return, pulito = '%s' \n", pulito);
 				if (!main_dichiarato){
 					printf("[checkfile] return fuori dal main alla riga %i \n", n_riga);
+					int* ptr_riga = malloc(sizeof(int));
+					*ptr_riga = n_riga;
+					list_append(stats->righe_errore, ptr_riga);
 					stats->errori_rilevati++;
 				}
 				else if (controllaReturnValido(pulito, var_dichiarate)){
@@ -1371,37 +1287,41 @@ List* check_file(char* filename, Statistiche* stats){
 				}
 				else{
 					printf("[checkfile] return non valido alla riga: %i \n", n_riga);
+					int* ptr_riga = malloc(sizeof(int));
+					*ptr_riga = n_riga;
+					list_append(stats->righe_errore, ptr_riga);
 				}
 				free(pulito);
 				continue;
 			}
 
-			//controllo della dichiarazione if/else/for/while
-			if(controllaStrutturaControllo(pulito, n_riga, stats)){
-				free(pulito);
-				continue;
-			}
-
-			//controllo assegnazione, es: 'a = b + 10;'
-			if (isAssegnazioneValida(pulito, var_dichiarate)){
-				printf("[checkfile] assegnazione valida alla riga: %i \n", n_riga);
-				free(pulito);
- 				continue;
-			}
 
 			//controllo dichiarazione delle variabili
-			if(controllaDichiarazioneVariabile(pulito, n_riga, struct_definite, var_dichiarate, &stats)){
+			if(controllaDichiarazioneVariabile(pulito, n_riga, struct_definite, var_dichiarate, stats)){
 				// Variabile
 				stats->variabili_controllate++;	//conta solo dichiarazione valida di var
 				printf("[checkfile] variabile valida '%s' alla riga %i\n", pulito, n_riga);
 				//adrebbe aggiunto alla lista delle variabili dichiarate
-
 			}
+			// se non è dichiarazione, controlla assegnazione
+			else if (isAssegnazioneValida(pulito,var_dichiarate)){
+				//controllo assegnazione, es: 'a = b + 10;
+				printf("[checkfile] assegnazione valida alla riga: %i \n", n_riga);
+				free(pulito);
+ 				continue;
+			}
+			//altrimenti errore
 			else{
 				stats->variabili_controllate++;
-				stats->errori_rilevati++; //errori contati separatamente
-				printf("[checkfile] variabile non valida '%s' alla riga %i\n", pulito, n_riga);
+				stats->errori_rilevati++;
+
+				int* ptr_riga = malloc(sizeof(int));
+				*ptr_riga = n_riga;
+				list_append(stats->righe_errore, ptr_riga);
+
+				printf("[checkfile] dichiarazione/assegnazione non valida alla riga: %i \n", n_riga);
 			}
+			
 
 			//altri controlli andranno qui
 
@@ -1426,7 +1346,7 @@ List* check_file(char* filename, Statistiche* stats){
 		stats->errori_rilevati++;
 	}
 
-	for (int s = 0; s < struct_definite->numero_elementi_attuali; s++){
+	for (size_t s = 0; s < struct_definite->numero_elementi_attuali; s++){
 		StructDef* sd = list_get(struct_definite, s);
 		for (int j = 0; j < sd->numero_alias; j++){
 			char* alias = sd->alias[j];
@@ -1468,16 +1388,8 @@ List* controllaUtilizzoVariabili(char *nome_file_in, Statistiche *stats){
 		rimuoviCommentoInline(riga);
 		char *riga_pulita = rimuoviSpaziSx(riga);
 
-		//se la riga corrente è commento o #include o vuota, salta.
-		if(controllaRigaCommento(riga_pulita) == true){
-			//printf("[controllaVarInutilizzata]: commento  alla riga %i\n", riga_attuale);
-			continue;
-		}
-		else if(controllaRigaInclude(riga_pulita) == true){
-			//printf("[controllaVarInutilizzata]: include  alla riga %i\n", riga_attuale);
-			continue;
-		}
-		else if(controllaRigaVuota(riga_pulita) == true){
+		
+		if(controllaRigaVuota(riga_pulita) == true){
 			//printf("[controllaVarInutilizzata]: riga %i vuota\n", riga_attuale);
 			continue;
 		}
@@ -1544,7 +1456,7 @@ List* controllaUtilizzoVariabili(char *nome_file_in, Statistiche *stats){
 		char **tokens = split(riga_pulita, " \t=;,()[]{}+-*/<>!&|", &numero_token);
 
 			//per ogni riga scorre una volta le variabili della lista
-		for (int i = 0; i < variabili->numero_elementi_attuali; i++)
+		for (size_t i = 0; i < variabili->numero_elementi_attuali; i++)
 		{
 			Variabile *var_att = list_get(variabili, i);
 			if (var_att->usata == true){

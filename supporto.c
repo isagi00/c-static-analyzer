@@ -347,7 +347,7 @@ int conta_var_inutilizzate(List *vars){
 	}
 	//conta var inutilizzate
 	int count = 0;
-	for (int i=0; i < vars->numero_elementi_attuali; i++){
+	for (size_t i=0; i < vars->numero_elementi_attuali; i++){
 		Variabile *var = list_get(vars, i);
 		if (var->usata == false){
 			count++;
@@ -359,7 +359,7 @@ int conta_var_inutilizzate(List *vars){
 
 
 //salva statistiche su file esterno
-void salva_statistiche_file_esterno(char *nome_file_output, Statistiche *stats, List *var_inutilizzate){
+void  salva_statistiche_file_esterno(char *nome_file_output, Statistiche *stats, List *var_inutilizzate){
 	FILE *file_pointer = fopen(nome_file_output, "w"); //puntatore a file esterno
 
 	if (file_pointer == NULL) {
@@ -377,7 +377,7 @@ void salva_statistiche_file_esterno(char *nome_file_output, Statistiche *stats, 
 	fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di tipi di dato scorretti:  %i\n", stats->tipi_dato_scorretti);
 
 	//scrittura nome variabili non usate
-	for (int i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
+	for (size_t i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
 		Variabile *var = list_get(var_inutilizzate, i);
 		if (var->usata == false){
 			fprintf(file_pointer,"[STAT] salva_statistiche_file_esterno: Variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
@@ -395,19 +395,48 @@ void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate)
 
 	stats->variabili_inutilizzate = conta_var_inutilizzate(var_inutilizzate);
 
-	printf("[STAT] stampa_statistiche_su_terminale: numero di variabili controllate: %i\n", stats->variabili_controllate);
-	printf("[STAT] stampa_statistiche_su_terminale: numero di errori rilevati: %i\n", stats->errori_rilevati);
-	printf("[STAT] stampa_statistiche_su_terminale: numero di variabilio non utilizzati: %i\n", stats->variabili_inutilizzate);
-	printf("[STAT] stampa_statistiche_su_terminale: numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
-	printf("[STAT] stampa_statistiche_su_terminale: numero di tipi di dato scorretti: %i:\n", stats->tipi_dato_scorretti);
+	// printf("[STAT] stampa_statistiche_su_terminale: numero di variabili controllate: %i\n", stats->variabili_controllate);
+	// printf("[STAT] stampa_statistiche_su_terminale: numero di errori rilevati: %i\n", stats->errori_rilevati);
+	// printf("[STAT] stampa_statistiche_su_terminale: numero di variabilio non utilizzati: %i\n", stats->variabili_inutilizzate);
+	// printf("[STAT] stampa_statistiche_su_terminale: numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
+	// printf("[STAT] stampa_statistiche_su_terminale: numero di tipi di dato scorretti: %i:\n", stats->tipi_dato_scorretti);
+	printf("------------------ STATISTICHE DI ELABORAZIONE ------------------\n");
+	printf("numero di variabili controllate: %i\n", stats->variabili_controllate);
+	printf("numero di errori rilevati: %i\n", stats->errori_rilevati);
+	printf("numero di variabili non utilizzati: %i\n", stats->variabili_inutilizzate);
+	printf("numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
+	printf("numero di tipi di dato scorretti: %i:\n", stats->tipi_dato_scorretti);
+	printf("-----------------------------------------------------------------\n");
 
+	printf("\n");
+
+	if (stats->errori_rilevati != 0){
+		printf("----------------------------- ERRORI ----------------------------\n");
+
+		int total = stats->righe_errore->numero_elementi_attuali;
+		for (int i = 0; i < total; i++){
+			int* ptr_riga = (int*) list_get(stats-> righe_errore, i);
+			printf("errore alla riga: %i\n", *ptr_riga);
+		}
+		printf("-----------------------------------------------------------------\n");
+
+
+		printf("\n");
+
+	}
+	
+	if (stats->variabili_inutilizzate != 0){
+		printf("------------------ VARIABILI NON UTILIZZATE ---------------------\n");
 	//scrittura nome variabili non usate
-	for (int i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
+	for (size_t i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
 		Variabile *var = list_get(var_inutilizzate, i);
 		if (var->usata == false){
 			printf("[STAT]stampa_statistiche_su_terminale: variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
 		}
 	}
+	printf("-----------------------------------------------------------------\n");
+	}
+	
 	return;
 }
 
@@ -418,7 +447,7 @@ void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate)
  */
 bool isInteroValido(char* token){
 	if (!token) return false;
-	int i=0;
+	size_t i=0;
 
 	//controlla se ci sta un segno '+' o '-', salta se ci sta
 	if (token[0] == '+' || token[0] == '-'){
@@ -455,7 +484,7 @@ ritorna true se il token è una variabile int.
 bool isVariabileIntDichiarata(char* token, List* variabili){
 	if (!token || !variabili) return false;
 	char* pulito = eliminaSpaziDxSx_v2(token);
-	for (int i = 0; i < variabili->numero_elementi_attuali; i++){
+	for (size_t i = 0; i < variabili->numero_elementi_attuali; i++){
 		Variabile* var = list_get(variabili,i);
 		if (var && strcmp(pulito, var->nome) == 0 && strcmp(var->tipo, "int") == 0){
 			free(pulito);
@@ -554,7 +583,7 @@ bool controllaReturnValido(char* str, List* variabili){
 		//caso: 'return b'
 		//controlla se la variabile sia dichiarata in precedenza, e che il tipo sia un 'int'
 		bool risultato = false;
-		for (int j = 0; j < variabili->numero_elementi_attuali; j++){
+		for (size_t j = 0; j < variabili->numero_elementi_attuali; j++){
 			Variabile* var = list_get(variabili, j);
 			if (strcmp(tokens[1], var->nome) == 0 && strcmp(var->tipo, "int") == 0){
 				risultato = true;
@@ -563,7 +592,7 @@ bool controllaReturnValido(char* str, List* variabili){
 		}
 		//caso: 'return 10'
 		if(!risultato){
-			for (int i = 0; i < strlen(tokens[1]); i++){
+			for (size_t i = 0; i < strlen(tokens[1]); i++){
 				if (!isdigit(tokens[1][i])){
 					printf("[controllaReturnValido] espressione di return non valido: '%s' \n", tokens[1]);
 					risultato = false;
@@ -594,59 +623,7 @@ bool controllaReturnValido(char* str, List* variabili){
 	return false;
 }
 
-// bool isAssegnazioneValida(char* str, List* variabili){
-// 	char* copia_str = strdup(str);
-// 	//controlla se il primo token è un tipo base
-// 	char* primo_token = NULL;
-// 	int n_token;
-// 	char** tokens = split(copia_str, " \t", &n_token);
-// 	if (n_token > 0) primo_token = strdup(tokens[0]);
-// 	free(tokens);
-// 	if (!primo_token) {	//guard
-// 		free(copia_str);
-// 		return false;
-// 	}
 
-// 	bool inizia_con_tipo = false;
-// 	for(int i = 0; tipi_base[i] != NULL; i++){
-// 		if (strcmp(primo_token, tipi_base[i]) == 0){
-// 			inizia_con_tipo = true;
-// 			return false;
-// 		}
-// 	}
-// 	free(primo_token);
-
-// 	//se non inizia con il tipo controlla se è un assegnamento valido
-// 	//quindi ad esempio: 'a = b + c'
-// 	if (!inizia_con_tipo){
-// 		//trova il nome della var assegnata
-// 		char* copia_str2 = strdup(str);
-// 		char* nome_candidato = NULL;
-// 		int n_token2;
-// 		char** tokens2 = split(copia_str2, " \t=", &n_token2);
-
-// 		if(n_token2 > 0) nome_candidato = strdup(tokens2[0]);
-// 		free(tokens2);
-// 		if(!nome_candidato){
-// 			free(copia_str2);
-// 			free(copia_str);
-// 			return false;
-// 		}
-
-// 		//check se candidato è già stato dichiarato
-// 		for(int j = 0; j < variabili->numero_elementi_attuali; j++){
-// 			Variabile* var = list_get(variabili, j);
-// 			if (strcmp(nome_candidato, var->nome) == 0){
-// 				free(copia_str2);
-// 				free(copia_str);
-// 				return true;
-// 			}
-// 		}
-// 		free(nome_candidato);
-// 	}
-// 	free(copia_str);
-// 	return false;
-// }
 
 
 bool isAssegnazioneValida(char* str, List* vars){
@@ -674,8 +651,8 @@ bool isAssegnazioneValida(char* str, List* vars){
 		return false;
 	}
 
-	char* lhs = strdup(tokens[0]);
-	char* rhs = strdup(tokens[1]);
+	char* lhs = strdup(tokens[0]); //left hand side, tokens a sx
+	char* rhs = strdup(tokens[1]); //right hand size, tokens a dx
 
 	//lhs
 	bool lhs_valido = false;
@@ -683,7 +660,7 @@ bool isAssegnazioneValida(char* str, List* vars){
 	char** left = split(lhs, " \t,.", &n_lhs);	//. per caso: 'struct.var = 10'
 	for (int l = 0; l < n_lhs; l++){
 		char* attuale = left[l];
-		for (int i = 0; i<vars->numero_elementi_attuali; i++){
+		for (size_t i = 0; i<vars->numero_elementi_attuali; i++){
 			Variabile* var = list_get(vars,i);
 			if (strcmp(attuale, var->nome) == 0 ){
 				var->usata = true;
@@ -702,10 +679,13 @@ bool isAssegnazioneValida(char* str, List* vars){
 
 	//rhs: marca le variabili che compaiono come usate
 	int n_rhs;
-	char** right = split(rhs, " \t,+-*/", &n_lhs);
+	char** right = split(rhs, " \t,+-*/", &n_rhs);
 	for (int r = 0; r < n_lhs; r++){
 		char* attuale = right[r];
-		for (int i = 0; i<vars->numero_elementi_attuali; i++){
+		if (attuale == NULL) {
+			continue;
+		}
+		for (size_t i = 0; i<vars->numero_elementi_attuali; i++){
 			Variabile* var = list_get(vars,i);
 			if (strcmp(attuale, var->nome) == 0 ){
 				var->usata = true;
@@ -807,7 +787,7 @@ _Bool ricerca_array(char *str, const char *arr[]){
 rimpiazza asterischi con spazi in-place
 */
 void elimina_asterischi(char *str){
-	for (int i = 0; i < strlen(str); i++){
+	for (size_t i = 0; i < strlen(str); i++){
 		if (str[i] == '*'){
 			str[i] = ' ';
 		}

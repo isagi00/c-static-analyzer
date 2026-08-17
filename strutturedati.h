@@ -35,6 +35,7 @@ typedef struct{
 	int variabili_inutilizzate;
 	int nomi_variabili_non_corretti;
 	int tipi_dato_scorretti;
+	List* righe_errore;
 } Statistiche;
 
 typedef struct{

@@ -18,14 +18,13 @@ int main(int argc, char *argv[]){
     bool opzione_output = false;
     bool opzione_verbose = false;
 
-
     //controllo argomenti minimi
     if (argc < 3 || argc > 6) {    //1: main, 2: -i, 3:nomefile.c ...
          printf("[main] utilizzo: -i <file_in.c> [-o <file_out>] [-v] \n ");
          printf("opzioni:\n");
-         printf("   -i, --in <file.c>  specifica il nome del file .c (obbligatorio)\n");
-         printf("   -o, --out <file>  specifica il nome del file su cui salvare le statistiche. stampa su terminale di default. (opzionale)\n");
-         printf("   -v, --verbose  stampa sul terminale le statistiche.\n ");
+         printf("   -i/--in <file.c>  specifica il nome del file .c (obbligatorio)\n");
+         printf("   [-o/--out <file>]  specifica il nome del file su cui salvare le statistiche. stampa su terminale di default. (opzionale)\n");
+         printf("   [-v/--verbose]  stampa sul terminale le statistiche.\n ");
          return 0;
         }
     
@@ -56,7 +55,6 @@ int main(int argc, char *argv[]){
             }
         }
 
-    
         if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0){
             if (opzione_verbose == false) {
                 opzione_verbose = true;
@@ -68,12 +66,13 @@ int main(int argc, char *argv[]){
         }
     }
 
-    //salva le statistiche su un file esterno o stampa su terminale
-    printf("===========================[inizio analisi]===========================\n \n");
+    // //salva le statistiche su un file esterno o stampa su terminale
+    // printf("===========================[inizio analisi]===========================\n \n");
 
     //qui vanno le funzioni. 
 
     Statistiche stats = {0};    //inizializza tutto a 0
+    stats.righe_errore = list_create();
     // List* variabili;
 
     //controlloVariabile(nome_file_input,opzione_output, opzione_verbose);
@@ -81,28 +80,28 @@ int main(int argc, char *argv[]){
 
     List* variabili_dichiarate = check_file(nome_file_input, &stats);
     
-    for (int i = 0; i < variabili_dichiarate->numero_elementi_attuali; i++){
-        Variabile* var = list_get(variabili_dichiarate, i);
-        printf("[MAIN] var dichiarata: '%s' di tipo: '%s' con storage: '%s' e qual: '%s' alla riga %i\n",
-                var->nome, var->tipo, var->storage, var->qual, var->riga_dichiarata);
-    }
+    // for (int i = 0; i < variabili_dichiarate->numero_elementi_attuali; i++){
+    //     Variabile* var = list_get(variabili_dichiarate, i);
+    //     printf("[MAIN] var dichiarata: '%s' di tipo: '%s' con storage: '%s' e qual: '%s' alla riga %i\n",
+    //             var->nome, var->tipo, var->storage, var->qual, var->riga_dichiarata);
+    // }
     
 
 
     if (opzione_output == true && opzione_verbose == true){
         salva_statistiche_file_esterno(nome_file_output, &stats, variabili_dichiarate);
         stampa_statistiche_su_terminale(&stats, variabili_dichiarate);
-        printf("===========================[termine analisi]===========================\n");
+        // printf("===========================[termine analisi]===========================\n");
         return 0;
     }
     else if (opzione_output == true && opzione_verbose == false){
         salva_statistiche_file_esterno(nome_file_output, &stats, variabili_dichiarate);
-        printf("===========================[termine analisi]===========================\n");
+        // printf("===========================[termine analisi]===========================\n");
         return 0;
     }
     else if (opzione_output == false){   //senza -o, --out: stampa su terminale di default
         stampa_statistiche_su_terminale(&stats, variabili_dichiarate);
-        printf("===========================[termine analisi]===========================\n");
+        // printf("===========================[termine analisi]===========================\n");
         return 0;
     }
 
