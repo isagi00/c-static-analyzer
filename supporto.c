@@ -404,7 +404,7 @@ void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate)
 	// printf("[STAT] stampa_statistiche_su_terminale: numero di tipi di dato scorretti: %i:\n", stats->tipi_dato_scorretti);
 	printf("------------------ STATISTICHE DI ELABORAZIONE ------------------\n");
 	printf("numero di variabili controllate: %i\n", stats->variabili_controllate);
-	printf("numero di errori rilevati: %i\n", stats->errori_rilevati);
+	printf("numero di errori rilevati: %i (+ %i var non utilizzate)\n", stats->errori_rilevati, stats->variabili_inutilizzate);
 	printf("numero di variabili non utilizzati: %i\n", stats->variabili_inutilizzate);
 	printf("numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
 	printf("numero di tipi di dato scorretti: %i:\n", stats->tipi_dato_scorretti);
@@ -412,13 +412,13 @@ void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate)
 
 	printf("\n");
 
-	if (stats->errori_rilevati != 0){
+	if (stats->errori_rilevati + stats->variabili_inutilizzate != 0){
 		printf("----------------------------- ERRORI ----------------------------\n");
 
 		int total = stats->righe_errore->numero_elementi_attuali;
 		for (int i = 0; i < total; i++){
-			int* ptr_riga = (int*) list_get(stats-> righe_errore, i);
-			printf("errore alla riga: %i\n", *ptr_riga);
+			int riga = (int)(intptr_t)list_get(stats-> righe_errore, i);
+			printf("errore alla riga: %i\n", riga);
 		}
 		printf("-----------------------------------------------------------------\n");
 
@@ -433,7 +433,7 @@ void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate)
 	for (size_t i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
 		Variabile *var = list_get(var_inutilizzate, i);
 		if (var->usata == false){
-			printf("[STAT]stampa_statistiche_su_terminale: variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
+			printf("variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
 		}
 	}
 	printf("-----------------------------------------------------------------\n");

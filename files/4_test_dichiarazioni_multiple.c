@@ -9,7 +9,8 @@ int main() {
     int d, 2invalid, e;            
     float ok, bad@name, fine;      
     int used_var;                  
-    int unused_var;                
+    int unused_var;   
+    int woa=1, awol = 2;             
 
     a = 10;
     b = a + 5;
