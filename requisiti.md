@@ -39,6 +39,11 @@ Il programma myPreCompiler deve calcolare le seguenti statistiche di elaborazion
 6. Per ogni errore rilevato, il numero di riga nel file (e il nome del file, qualora consideriate che il programma possa analizzare più file).  [ok]
 7. Per ogni variabile non utilizzata, il nome della variabile. [ok]
 
+ERRORI = NOMI + TIPI + NON UTILIZZATI
+NON UTILIZZATI
+NOMI
+TIPI
+
 Errori
 L'applicazione sviluppata deve gestire i seguenti errori
 1. errore nei parametri di input, opzioni e relativi argomenti specificate da linea di comando

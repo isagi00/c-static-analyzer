@@ -8,7 +8,7 @@ int main() {
     char @bad;
     int _ok;
     double also-bad;
-    int fine123;
+    ulong fine123;
 
     
     valid_name = 3.14;

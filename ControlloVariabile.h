@@ -20,7 +20,7 @@ bool controlloTipo(char* parola);
 bool controlloArgomentiMain(char* args);
 bool controlloNome(char* parola);
 char*  controlloVariabile(char* filename,Statistiche *stats);
-
+bool check_tipo_composto(char** tokens_tipo, int n_tipo, char* tipo_base_out);
 bool controllaTipoENomeTypedef(char* str, int n_riga);
 StructDef* parseTypeDef(char* clean,int n_riga);
 

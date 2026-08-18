@@ -5,7 +5,8 @@
 #include <ctype.h>
 #include "supporto.h"
 
-/*stampa le stringhe dell'array dato. usato rigorosamente dopo il split. 
+/*
+stampa le stringhe dell'array dato. usato rigorosamente dopo il split. 
 - parole: array di stringhe. es : ["hello", "world"]
 - numero_parole: numero di stringhe all'interno dell'array.
 */
@@ -17,11 +18,11 @@ void stampaParoleSplit(char **parole, int numero_parole) {
 }
 
 /*
-data una parola, ritorna se la parola è equivalente a un tipo valido.
+data una parola, ritorna se la parola è equivalente a un tipo valido, che sia base oppure definita da utente
 - parola: stringa da controllare. es: "hello world"
 ritorna true se la parola data è una dichiarazione di tipo corretto.
 */
-bool controlloTipo(char* parola, List* struct_definite){
+bool controlloTipo(char* parola, List* struct_definite, Statistiche* stat){
 	//FORSE: ELIMINA * e [] dalla parola
 	char* copia = strdup(parola);
 	elimina_asterischi(copia);
@@ -57,12 +58,15 @@ bool controlloTipo(char* parola, List* struct_definite){
 			}
 		}
 	}
+
+	stat->tipi_dato_scorretti++;
+	// stat->errori_rilevati++;
 	printf("[controlloTipo] errore di tipo");
     return false;
 }
 
 /*
-controlla solamente i tipi base.
+controlla se parola data è di tipi base.
 */
 bool controlloTipiBase(char* parola){
 	//caso: 'char'
@@ -468,459 +472,619 @@ bool controlloArgomentiMain(char* args, Statistiche* stat){
 
 
 
-_Bool isInt(char* valore, bool isSigned){
-    int i = 0;
-    // salta il segno se c'è
-    if( (valore[0] == '-') || (valore[0] == '+' && isSigned) ) {
-        i = 1;
-    }
-	else{
-		return 0;
-	}
+// _Bool isInt(char* valore, bool isSigned){
+//     int i = 0;
+//     // salta il segno se c'è
+//     if( (valore[0] == '-') || (valore[0] == '+' && isSigned) ) {
+//         i = 1;
+//     }
+// 	else{
+// 		return 0;
+// 	}
     
-    // se è solo "+" o "-" 
-    if(valore[i] == '\0'){
-		return 0;
-	}
+//     // se è solo "+" o "-" 
+//     if(valore[i] == '\0'){
+// 		return 0;
+// 	}
     
-    // controlla che tutti i caratteri restanti siano cifre
-    while(valore[i] != '\0') {
-        if(!isdigit(valore[i])){
-			return 0;
-		}
-        i++;
-    }
+//     // controlla che tutti i caratteri restanti siano cifre
+//     while(valore[i] != '\0') {
+//         if(!isdigit(valore[i])){
+// 			return 0;
+// 		}
+//         i++;
+//     }
     
-    return 1;
-}
+//     return 1;
+// }
 
-bool isChar(char* valore, bool isSigned){
-	bool char_lettera_ok = false;
-	bool char_numero = false; 
-	bool char_numero_ok =false;
-	if(strlen(valore)<=3 && strlen(valore)>=2 && valore[0]=='\'' && valore[strlen(valore)-1]=='\''){
-		char_lettera_ok = true;
-	}
+// bool isChar(char* valore, bool isSigned){
+// 	bool char_lettera_ok = false;
+// 	bool char_numero = false; 
+// 	bool char_numero_ok =false;
+// 	if(strlen(valore)<=3 && strlen(valore)>=2 && valore[0]=='\'' && valore[strlen(valore)-1]=='\''){
+// 		char_lettera_ok = true;
+// 	}
 
-    if(isInt(valore, isSigned)){
-		char_numero = true;
-	}
+//     if(isInt(valore, isSigned)){
+// 		char_numero = true;
+// 	}
 
-	if(char_numero){
-		int n=atoi(valore);	//cast "42" -> 42 ?
-		if(isSigned){
-			if(n >= -128 && n <= 127){
-				char_numero_ok = true;
+// 	if(char_numero){
+// 		int n=atoi(valore);	//cast "42" -> 42 ?
+// 		if(isSigned){
+// 			if(n >= -128 && n <= 127){
+// 				char_numero_ok = true;
+// 			}
+// 		}
+// 		else {
+// 			if(n >= 0 && n <= 255){
+// 				char_numero_ok = true;
+// 			}
+// 		}
+// 	}
+// 	return(char_lettera_ok || char_numero_ok);
+// }
+
+
+// /*
+// controlla se il valore assegnato alla variabile è valido o non.
+// -valore: stringa che rappresente il valore assegnato alla variabile. es:"10"
+// -tipo: tipo di dato dichiarato per la variabile. es: "int"
+// ritorna true se il valore assegnato è valido
+// @TODO:
+// unsigned int x = 42;
+// unsigned long x = 100000UL;
+// unsigned long long x = 9000000000ULL;
+// long long x = -9000000000LL;
+// long double x = 3.14159265358979323846L;
+// L è opzionale
+// */
+// bool controlloValoreAssegnato(char* valore,char* tipo){
+// 	// printf("[controlloValoreAssegnato] valore : '%s'\n", valore);
+// 	//char
+// 	if(strcmp(tipo,"char")==0){      
+// 		return isChar(valore, true);
+//     }
+// 	//int, long, short
+// 	else if(strcmp(tipo,"int")==0 || strcmp(tipo,"long")==0 || strcmp(tipo,"short")==0){ 
+
+//         for(size_t i = 0; i <strlen(valore); i++){
+// 			if(i== 0 && valore[i] == '"') return false;	//se inizia con " sicuramente è stringa, salta
+// 			if(i == 0 && (valore[i] == '+' || valore[i] == '-')) continue; // segno ok
+//        	 	if(valore[i] == ' ' || valore[i] == '\t') continue;	//salta spazi
+// 			/*
+// 			l'assegnazione 'a = b + c' deve ritornare corretto, se b e c sono variabili interi. 
+// 			altrimenti ritornerebbe false scorrettaemnte
+// 			*/
+//        		// if(!digit(valore[i])) return false;	//non è numero
+//        		// if(isalpha(valore[i])) return false; // no lettere, solo cifre
+
+//             // if( !(isalnum(valore[i]) ||valore[i]=='+'||valore[i]=='-'||valore[i]==' '|| valore[i]=='\t') ){
+//             //     return false;
+//             // }
+//         }
+//         return true;
+//     }
+// 	//float, double
+// 	else if(strcmp(tipo,"float")==0 || strcmp(tipo,"double")==0){
+//     	bool haPunto = false;
+//     	bool haE = false;
+//     	int len = strlen(valore);
+
+//     	for(int i = 0; i < len; i++){
+//         	if(valore[i] == '.'){
+//             	if(haPunto || haE) return false;
+//             	haPunto = true;
+//         	}
+//         	else if(valore[i] == 'e' || valore[i] == 'E'){
+//             	if(haE) return false; 
+//             	haE = true;
+//         	}
+//         	else if(valore[i] == '+' || valore[i] == '-'){
+//             	if(i != 0){
+// 					return false; 
+// 				} 
+//         	}	
+//         	else if(valore[i] == ' ' || valore[i] == '\t'){
+//             	continue; 
+//         	}
+//         	else if(!isdigit(valore[i])){
+//             	return false;
+//         	}
+// 			//tutto ok ritorna true
+// 			return true;
+//     	}
+// 	//bool
+// 	}
+// 	else if(strcmp(tipo,"bool")==0){     
+// 		// usa dirretamente funzione int
+//         return false;
+//     }
+// 	// free(valore);
+//     return true;
+// }
+
+
+
+bool check_tipo_composto(char** tokens_tipo, int n_tipo, char* tipo_base_out){
+	if(n_tipo <= 0) return false;
+
+	int base_count = 0;
+	int long_count = 0;
+	int short_count = 0;
+	int sign_count = 0;
+	char* base_type = NULL;
+
+	for (int i = 0; i< n_tipo; i++){
+		char* t = tokens_tipo[i];
+		if (strcmp(t, "int") == 0 || strcmp(t, "char") == 0 || strcmp(t, "float") == 0 || 
+			strcmp(t, "double") == 0 || strcmp(t, "bool") == 0 || strcmp(t, "_Bool") == 0){
+				base_count ++;
+				base_type = t;
 			}
+		else if (strcmp(t, "long") == 0) long_count++;
+		else if (strcmp(t, "short") == 0) short_count++;
+		else if (strcmp(t, "unsigned") == 0 || strcmp(t, "signed") == 0) sign_count++;
+		else return false;
+	}
+
+
+	//regole
+	if (base_count > 1) return false;
+	if (long_count > 2) return false;
+	if (short_count > 1) return false;
+	if (sign_count > 1) return false;
+	if (short_count && long_count) return false;
+
+	if (base_type){
+		if (strcmp(base_type,"float")==0  && (long_count||short_count||sign_count)) return false;
+		if (strcmp(base_type,"double")==0 && (short_count||sign_count||long_count>1)) return false; // "long double" ok
+		if ((strcmp(base_type,"bool")==0 || strcmp(base_type,"_Bool")==0) && (long_count||short_count||sign_count)) return false;
+		if (strcmp(base_type,"char")==0   && (long_count||short_count)) return false; // signed/unsigned char ok
+	}
+
+	if (tipo_base_out){
+		if (base_type){
+			strcpy(tipo_base_out, base_type);
 		}
-		else {
-			if(n >= 0 && n <= 255){
-				char_numero_ok = true;
-			}
+		else{
+			strcpy(tipo_base_out, "int");
 		}
 	}
-	return(char_lettera_ok || char_numero_ok);
+	return true;
 }
 
+// /*
+// controlla [tipo composto da 2] + nome
+// */
+// _Bool controllaLongShort_tre_sessione(char** parti_var, Statistiche* stat) {
+//     return (
+// 		// casi con "long" prima
+//     	strcmp(parti_var[0], "long") == 0 && (
+//     	// "long long a"
+//     	(strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
+//     	// "long int a"
+//     	(strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2], stat)) ||
+//     	// "long double a"
+//         (strcmp(parti_var[1], "double") == 0 && controllaNome(parti_var[2], stat))
+//     	) ||
 
-/*
-controlla se il valore assegnato alla variabile è valido o non.
--valore: stringa che rappresente il valore assegnato alla variabile. es:"10"
--tipo: tipo di dato dichiarato per la variabile. es: "int"
-ritorna true se il valore assegnato è valido
-@TODO:
-unsigned int x = 42;
-unsigned long x = 100000UL;
-unsigned long long x = 9000000000ULL;
-long long x = -9000000000LL;
-long double x = 3.14159265358979323846L;
-L è opzionale
-*/
-bool controlloValoreAssegnato(char* valore,char* tipo){
-	// printf("[controlloValoreAssegnato] valore : '%s'\n", valore);
-	//char
-	if(strcmp(tipo,"char")==0){      
-		return isChar(valore, true);
-    }
-	//int, long, short
-	else if(strcmp(tipo,"int")==0 || strcmp(tipo,"long")==0 || strcmp(tipo,"short")==0){ 
+//     	// "unsigned long a"
+//     	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
+//     	// "signed long a"
+// 		(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
 
-        for(size_t i = 0; i <strlen(valore); i++){
-			if(i== 0 && valore[i] == '"') return false;	//se inizia con " sicuramente è stringa, salta
-			if(i == 0 && (valore[i] == '+' || valore[i] == '-')) continue; // segno ok
-       	 	if(valore[i] == ' ' || valore[i] == '\t') continue;	//salta spazi
-			/*
-			l'assegnazione 'a = b + c' deve ritornare corretto, se b e c sono variabili interi. 
-			altrimenti ritornerebbe false scorrettaemnte
-			*/
-       		// if(!digit(valore[i])) return false;	//non è numero
-       		// if(isalpha(valore[i])) return false; // no lettere, solo cifre
+//     	// casi con "short" prima
+//     	strcmp(parti_var[0], "short") == 0 && (
+//     	// "short int a"
+//         (strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2], stat))) ||
 
-            // if( !(isalnum(valore[i]) ||valore[i]=='+'||valore[i]=='-'||valore[i]==' '|| valore[i]=='\t') ){
-            //     return false;
-            // }
-        }
-        return true;
-    }
-	//float, double
-	else if(strcmp(tipo,"float")==0 || strcmp(tipo,"double")==0){
-    	bool haPunto = false;
-    	bool haE = false;
-    	int len = strlen(valore);
+//     	// "unsigned short a"
+//     	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2], stat)) ||
+//     	// "signed short a"
+//     	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2],stat )) ||
 
-    	for(int i = 0; i < len; i++){
-        	if(valore[i] == '.'){
-            	if(haPunto || haE) return false;
-            	haPunto = true;
-        	}
-        	else if(valore[i] == 'e' || valore[i] == 'E'){
-            	if(haE) return false; 
-            	haE = true;
-        	}
-        	else if(valore[i] == '+' || valore[i] == '-'){
-            	if(i != 0){
-					return false; 
-				} 
-        	}	
-        	else if(valore[i] == ' ' || valore[i] == '\t'){
-            	continue; 
-        	}
-        	else if(!isdigit(valore[i])){
-            	return false;
-        	}
-			//tutto ok ritorna true
-			return true;
-    	}
-	//bool
-	}
-	else if(strcmp(tipo,"bool")==0){     
-		// usa dirretamente funzione int
-        return false;
-    }
-	// free(valore);
-    return true;
-}
+// 		// casi con char
+// 		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2],stat)) ||
+// 		// "signed char a"
+//     	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2], stat)) ||
+
+// 		// casi con int
+// 		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2],stat)) ||
+// 		// "signed char a"
+//     	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2],stat))
+// 	);
+// }
+
+// /*
+// [tipo tipo tipo] nome
+// */
+// _Bool controllaLongShort_quattro_sessione(char** parti_var, Statistiche* stat) {
+// 	return (
+//         // "long long int a"
+//         (strcmp(parti_var[0], "long") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3],stat)) ||
+//         // "long long a" con unsigned/signed
+//         (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3], stat)) ||
+//         (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3], stat)) ||
+//         // "unsigned long int a"
+//         (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
+//         // "signed long int a"
+//         (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
+//         // "unsigned short int a"
+//         (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
+//         // "signed short int a"
+//         (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
+//         // "long int a" con signed
+//         (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat))
+// 	);
+// }
+
+// //max numero di tipo dic
+// _Bool controllaLongShort_cinque_sessione(char** parti_var, Statistiche* stat) {
+//     return (
+//         // "unsigned long long int a"
+//         (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4], stat)) ||
+//         // "signed long long int a"
+//         (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4],stat))
+//     );
+// }
 
 
-/*
-controlla [tipo composto da 2] + nome
-*/
-_Bool controllaLongShort_tre_sessione(char** parti_var, Statistiche* stat) {
-    return (
-		// casi con "long" prima
-    	strcmp(parti_var[0], "long") == 0 && (
-    	// "long long a"
-    	(strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
-    	// "long int a"
-    	(strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2], stat)) ||
-    	// "long double a"
-        (strcmp(parti_var[1], "double") == 0 && controllaNome(parti_var[2], stat))
-    	) ||
-
-    	// "unsigned long a"
-    	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
-    	// "signed long a"
-		(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && controllaNome(parti_var[2], stat)) ||
-
-    	// casi con "short" prima
-    	strcmp(parti_var[0], "short") == 0 && (
-    	// "short int a"
-        (strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2], stat))) ||
-
-    	// "unsigned short a"
-    	(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2], stat)) ||
-    	// "signed short a"
-    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && controllaNome(parti_var[2],stat )) ||
-
-		// casi con char
-		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2],stat)) ||
-		// "signed char a"
-    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "char") == 0 && controllaNome(parti_var[2], stat)) ||
-
-		// casi con int
-		(strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2],stat)) ||
-		// "signed char a"
-    	(strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "int") == 0 && controllaNome(parti_var[2],stat))
-	);
-}
-
-/*
-[tipo tipo tipo] nome
-*/
-_Bool controllaLongShort_quattro_sessione(char** parti_var, Statistiche* stat) {
-	return (
-        // "long long int a"
-        (strcmp(parti_var[0], "long") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3],stat)) ||
-        // "long long a" con unsigned/signed
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3], stat)) ||
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && controllaNome(parti_var[3], stat)) ||
-        // "unsigned long int a"
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
-        // "signed long int a"
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
-        // "unsigned short int a"
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
-        // "signed short int a"
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "short") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat)) ||
-        // "long int a" con signed
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "int") == 0 && controllaNome(parti_var[3], stat))
-	);
-}
-
-//max numero di tipo dic
-_Bool controllaLongShort_cinque_sessione(char** parti_var, Statistiche* stat) {
-    return (
-        // "unsigned long long int a"
-        (strcmp(parti_var[0], "unsigned") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4], stat)) ||
-        // "signed long long int a"
-        (strcmp(parti_var[0], "signed") == 0 && strcmp(parti_var[1], "long") == 0 && strcmp(parti_var[2], "long") == 0 && strcmp(parti_var[3], "int") == 0 && controllaNome(parti_var[4],stat))
-    );
-}
-
-
-/*controlla se la dichiarazione della variabile è valida
-true per:
-1. '[tipo] a'
-2. '[tipo] a = [valore]'
-3. '[storage] [tipo] a = [valore]'
-4. '[qualificatore] [tipo] a = [valore]'
-5. '[storage] [qualificatore] [tipo] a = [valore]
-*/
-bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite, List* var_dichiarate, Statistiche* stat){
-	if (!str) return false;
+// /*controlla se la dichiarazione della variabile è valida
+// true per:
+// 1. '[tipo] a'
+// 2. '[tipo] a = [valore]'
+// 3. '[storage] [tipo] a = [valore]'
+// 4. '[qualificatore] [tipo] a = [valore]'
+// 5. '[storage] [qualificatore] [tipo] a = [valore]
+// */
+// bool controllaDichiarazioneVariabile(char* str, int riga, List* struct_definite, List* var_dichiarate, Statistiche* stat){
+// 	if (!str) return false;
 	
-	//duplica e splitta 
+// 	//duplica e splitta 
+// 	int n_parti;
+// 	char* copia_str=strdup(str);	//"int a = 10"
+// 	//printf("\n %s \n",parole_copia);
+// 	// eliminaAsterischi()
+
+//     char** parti_var=split_variabile(copia_str,&n_parti);	// "int", "a", "10"
+// 	char** parti_var_copia = parti_var;
+
+// 	_Bool ha_storage=0;
+// 	char* stor = NULL;
+// 	_Bool ha_qual=0;
+// 	char* qual = NULL;
+// 	//rileva keyword di storage e qualificatori
+// 	while ((!ha_storage && ricerca_array(parti_var[0], storage)||(!ha_qual && ricerca_array(parti_var[0],qualificatori))))
+// 	{	
+// 		// printf("loop\n");
+// 		if(!ha_storage && ricerca_array(parti_var[0],storage)){
+// 			ha_storage=1;
+// 			stor = strdup(parti_var[0]);
+// 			parti_var++;
+// 			n_parti--;
+// 			// printf("trovato storage\n");
+// 		}
+// 		if(!ha_qual && ricerca_array(parti_var[0],qualificatori)){
+// 			ha_qual=1;
+// 			qual = strdup(parti_var[0]);
+// 			parti_var++;
+// 			n_parti--;
+// 			// printf("trovato qual\n");
+// 		}
+// 	}
+
+// 	// printf("storage, qual: '%s', '%s'\n", stor, qual);
+
+// 	if (!parti_var)
+// 	{
+// 		free(copia_str);
+// 		return false;
+// 	}
+// 	bool risultato = false;
+// 	// printf("str: %s \n", str);
+// 	// stampaParoleSplit(parti_var, n_parti);
+
+// 	//check sui tipi base
+// 	//caso: "int"
+// 	if(n_parti<=1){
+// 		risultato = false; 
+// 	}
+// 	//caso: int, a
+// 	else if(n_parti==2){
+		
+// 		if (!controlloTipo(parti_var[0], struct_definite)){
+// 			stat->tipi_dato_scorretti++;
+// 		}
+
+		
+		
+// 		risultato = (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat));
+// 		if (risultato){
+// 			Variabile* var = malloc(sizeof(Variabile));
+// 			var->nome = strdup(parti_var[1]);
+// 			var->tipo = strdup(parti_var[0]);
+// 			var->riga_dichiarata = riga;
+// 			var->usata = false;	
+// 			var->storage = ha_storage ? strdup(stor) : NULL;
+// 			var->qual = ha_qual ? strdup(qual) : NULL;
+// 			list_append(var_dichiarate, var);
+// 		}
+		
+// 	}
+// 	//caso: int, a , 10
+// 	else if(n_parti==3){	//"int i = 10"
+// 		if (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat)){
+// 			if (controlloValoreAssegnato(parti_var[2], parti_var[0])){
+// 				risultato = true;
+// 				if (risultato) {
+// 					Variabile* var = malloc(sizeof(Variabile));
+// 					var->nome = strdup(parti_var[1]);
+// 					var->tipo = strdup(parti_var[0]);
+// 					var->riga_dichiarata = riga;
+// 					var->usata = false;	
+// 					var->storage = ha_storage ? strdup(stor) : NULL;
+//                 	var->qual = ha_qual ? strdup(qual) : NULL;	
+// 					list_append(var_dichiarate, var);
+// 				}
+// 			}	
+// 			else{
+// 				printf("[controllaDichiarazioneVariabile] valore '%s' non valido per tipo '%s'\n", parti_var[2],parti_var[0]);
+// 			}
+// 		}
+// 		// long, long, a
+// 		else if(controllaLongShort_tre_sessione(parti_var, stat))
+//     	{
+// 			risultato=true;
+// 			if (risultato){
+// 				char buffer_tipo[256] = {0};
+// 				strcat(buffer_tipo, parti_var[0]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[1]);
+
+// 				Variabile* var = malloc(sizeof(Variabile));
+// 				var->nome = strdup(parti_var[2]);
+// 				var->tipo = strdup(buffer_tipo);
+// 				var->riga_dichiarata = riga;
+// 				var->usata = false;	
+// 				var->storage = ha_storage ? strdup(stor) : NULL;
+// 				var->qual = ha_qual ? strdup(qual) : NULL;
+// 				list_append(var_dichiarate, var);
+// 			}
+// 		}
+// 	}
+// 	//long, long ,a , 10;
+// 	//unsigned long long a;
+// 	else if(n_parti==4){	//"short int a=10" "long int a=10" "unsigned int a=10"  "unsigned short"
+// 		if(strchr(str,'=')){ //se ci sta uguale, var con assegnazione 'long long nome = 1'
+// 			//[long int a = 10]
+// 			risultato=(controllaLongShort_tre_sessione(parti_var, stat));
+// 			if (risultato){
+// 				char buffer_tipo[256] = {0};
+// 				strcat(buffer_tipo, parti_var[0]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[1]);
+
+// 				Variabile* var = malloc(sizeof(Variabile));
+// 				var->nome = strdup(parti_var[2]);
+// 				var->tipo = strdup(buffer_tipo);
+// 				var->riga_dichiarata = riga;
+// 				var->usata = false;	
+// 				var->storage = ha_storage ? strdup(stor) : NULL;
+// 				var->qual = ha_qual ? strdup(qual) : NULL;
+// 				list_append(var_dichiarate, var);
+// 			}
+// 		}
+// 		else{ //var senza assegnazione 'unsigned long long nome;
+// 			//unsigned long long a;
+// 			risultato=controllaLongShort_quattro_sessione(parti_var,stat);
+// 			if (risultato){
+// 				char buffer_tipo[256] = {0};
+// 				strcat(buffer_tipo, parti_var[0]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[1]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[2]);
+
+// 				Variabile* var = malloc(sizeof(Variabile));
+// 				var->nome = strdup(parti_var[3]);
+// 				var->tipo = strdup(buffer_tipo);
+// 				var->riga_dichiarata = riga;
+// 				var->usata = false;	
+// 				var->storage = ha_storage ? strdup(stor) : NULL;
+// 				var->qual = ha_qual ? strdup(qual) : NULL;
+// 				list_append(var_dichiarate, var);
+// 			}
+// 		}
+// 	}
+// 	else if(n_parti == 5){	//"unsigned short int a = 10" "long long int a=10"
+// 		if(strchr(str,'=')){
+// 			risultato = controllaLongShort_quattro_sessione(parti_var,stat); //unsigned long long a = 10
+// 			if (risultato){
+// 				char buffer_tipo[256] = {0};
+// 				strcat(buffer_tipo, parti_var[0]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[1]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[2]);
+				
+
+// 				Variabile* var = malloc(sizeof(Variabile));
+// 				var->nome = strdup(parti_var[3]);
+// 				var->tipo = strdup(buffer_tipo);
+// 				var->riga_dichiarata = riga;
+// 				var->usata = false;	
+// 				var->storage = ha_storage ? strdup(stor) : NULL;
+// 				var->qual = ha_qual ? strdup(qual) : NULL;
+// 				list_append(var_dichiarate, var);
+// 			}
+// 		}
+// 		else{ //unsigned long long int a;
+// 			//unsigned long long int a;
+// 			risultato = controllaLongShort_cinque_sessione(parti_var,stat);
+// 			if (risultato){
+// 				char buffer_tipo[256] = {0};
+// 				strcat(buffer_tipo, parti_var[0]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[1]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[2]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[3]);
+
+// 				Variabile* var = malloc(sizeof(Variabile));
+// 				var->nome = strdup(parti_var[4]);
+// 				var->tipo = strdup(buffer_tipo);
+// 				var->riga_dichiarata = riga;
+// 				var->usata = false;	
+// 				var->storage = ha_storage ? strdup(stor) : NULL;
+// 				var->qual = ha_qual ? strdup(qual) : NULL;
+// 				list_append(var_dichiarate, var);
+// 			}
+// 		}
+// 	}
+// 	else if(n_parti == 6){	//"unsigned long long a = 10"
+// 		if(ricerca(str,"=")){
+// 			risultato = controllaLongShort_cinque_sessione(parti_var,stat);
+// 			if (risultato){
+// 				char buffer_tipo[256] = {0};
+// 				strcat(buffer_tipo, parti_var[0]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[1]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[2]);
+// 				strcat(buffer_tipo, " ");
+// 				strcat(buffer_tipo, parti_var[3]);
+
+// 				Variabile* var = malloc(sizeof(Variabile));
+// 				var->nome = strdup(parti_var[4]);
+// 				var->tipo = strdup(buffer_tipo);
+// 				var->riga_dichiarata = riga;
+// 				var->usata = false;	
+// 				var->storage = ha_storage ? strdup(stor) : NULL;
+// 				var->qual = ha_qual ? strdup(qual) : NULL;
+// 				list_append(var_dichiarate, var);
+// 			}
+// 		}
+// 		else{
+// 			risultato = 0;
+// 		}
+// 	}
+	
+//     free(parti_var_copia);
+//     free(copia_str);
+// 	return risultato;
+// }
+
+
+bool check_dichiarazione_var(char* str, int riga, List* struct_definite, List* var_dichiarate, Statistiche* stat ){
+	if (!str) return false;
+	//duplica e splitta
 	int n_parti;
-	char* copia_str=strdup(str);	//"int a = 10"
-	//printf("\n %s \n",parole_copia);
-	// eliminaAsterischi()
-
-    char** parti_var=split_variabile(copia_str,&n_parti);	// "int", "a", "10"
+	char* copia_str = strdup(str);	//"int a = 10"
+ 
+	char** parti_var = split_variabile(copia_str, &n_parti);	// "int", "a", "10"
 	char** parti_var_copia = parti_var;
-
-	_Bool ha_storage=0;
+ 
+	_Bool ha_storage = 0;
 	char* stor = NULL;
-	_Bool ha_qual=0;
+	_Bool ha_qual = 0;
 	char* qual = NULL;
 	//rileva keyword di storage e qualificatori
-	while ((!ha_storage && ricerca_array(parti_var[0], storage)||(!ha_qual && ricerca_array(parti_var[0],qualificatori))))
-	{	
-		// printf("loop\n");
-		if(!ha_storage && ricerca_array(parti_var[0],storage)){
-			ha_storage=1;
+	while ((!ha_storage && ricerca_array(parti_var[0], storage)) || (!ha_qual && ricerca_array(parti_var[0], qualificatori)))
+	{
+		if (!ha_storage && ricerca_array(parti_var[0], storage)){
+			ha_storage = 1;
 			stor = strdup(parti_var[0]);
 			parti_var++;
 			n_parti--;
-			// printf("trovato storage\n");
 		}
-		if(!ha_qual && ricerca_array(parti_var[0],qualificatori)){
-			ha_qual=1;
+		if (!ha_qual && ricerca_array(parti_var[0], qualificatori)){
+			ha_qual = 1;
 			qual = strdup(parti_var[0]);
 			parti_var++;
 			n_parti--;
-			// printf("trovato qual\n");
 		}
 	}
-
-	// printf("storage, qual: '%s', '%s'\n", stor, qual);
-
-	if (!parti_var)
-	{
+ 
+	if (!parti_var || n_parti < 2){
 		free(copia_str);
+		if (stor) free(stor);
+		if (qual) free(qual);
 		return false;
 	}
-	bool risultato = false;
-	// printf("str: %s \n", str);
-	// stampaParoleSplit(parti_var, n_parti);
 
-	//check sui tipi base
-	//caso: "int"
-	if(n_parti<=1){
-		risultato = false; 
+	//separa : [tipo...] [nome] [valore]
+	//valore è ultimo token solo se c'è '='
+
+	bool ha_valore = (strchr(str, '=') != NULL);
+	int n_tipo = ha_valore ? n_parti -2: n_parti -1; //se ha valore togli 2, '[nome][valore]'. se non ha valore togli [nome]
+
+	if (n_tipo < 1){
+		free(parti_var_copia);
+		free(copia_str);
+		if (stor) free(stor);
+		if (qual) free(qual);
+		return false;
 	}
-	//caso: int, a
-	else if(n_parti==2){
-		
-		if (controlloTipo(parti_var[0], struct_definite) != 0){
-			stat->tipi_dato_scorretti++;
-		}
-		
-		risultato = (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat));
-		if (risultato){
-			Variabile* var = malloc(sizeof(Variabile));
-			var->nome = strdup(parti_var[1]);
-			var->tipo = strdup(parti_var[0]);
-			var->riga_dichiarata = riga;
-			var->usata = false;	
-			var->storage = ha_storage ? strdup(stor) : NULL;
-			var->qual = ha_qual ? strdup(qual) : NULL;
-			list_append(var_dichiarate, var);
-		}
-		
+
+	int idx_nome = n_tipo;
+	int idx_valore = n_tipo + 1;
+
+	//-- controllo tipo
+	char tipo_base[32] = {0};
+	bool tipo_ok;
+
+	if (n_tipo == 1 && controlloTipo(parti_var[0], struct_definite, stat)){
+		strncpy(tipo_base, parti_var[0], sizeof(tipo_base)-1);
+		tipo_ok = true;
 	}
-	//caso: int, a , 10
-	else if(n_parti==3){	//"int i = 10"
-		if (controlloTipo(parti_var[0], struct_definite) && controllaNome(parti_var[1], stat)){
-			if (controlloValoreAssegnato(parti_var[2], parti_var[0])){
-				risultato = true;
-				if (risultato) {
-					Variabile* var = malloc(sizeof(Variabile));
-					var->nome = strdup(parti_var[1]);
-					var->tipo = strdup(parti_var[0]);
-					var->riga_dichiarata = riga;
-					var->usata = false;	
-					var->storage = ha_storage ? strdup(stor) : NULL;
-                	var->qual = ha_qual ? strdup(qual) : NULL;	
-					list_append(var_dichiarate, var);
-				}
-			}	
-			else{
-				printf("[controllaDichiarazioneVariabile] valore '%s' non valido per tipo '%s'\n", parti_var[2],parti_var[0]);
-			}
-		}
-		// long, long, a
-		else if(controllaLongShort_tre_sessione(parti_var, stat))
-    	{
-			risultato=true;
-			if (risultato){
-				char buffer_tipo[256] = {0};
-				strcat(buffer_tipo, parti_var[0]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[1]);
-
-				Variabile* var = malloc(sizeof(Variabile));
-				var->nome = strdup(parti_var[2]);
-				var->tipo = strdup(buffer_tipo);
-				var->riga_dichiarata = riga;
-				var->usata = false;	
-				var->storage = ha_storage ? strdup(stor) : NULL;
-				var->qual = ha_qual ? strdup(qual) : NULL;
-				list_append(var_dichiarate, var);
-			}
-		}
+	else{
+		tipo_ok = check_tipo_composto(parti_var, n_tipo, tipo_base);
 	}
-	//long, long ,a , 10;
-	//unsigned long long a;
-	else if(n_parti==4){	//"short int a=10" "long int a=10" "unsigned int a=10"  "unsigned short"
-		if(strchr(str,'=')){ //se ci sta uguale, var con assegnazione 'long long nome = 1'
-			//[long int a = 10]
-			risultato=(controllaLongShort_tre_sessione(parti_var, stat));
-			if (risultato){
-				char buffer_tipo[256] = {0};
-				strcat(buffer_tipo, parti_var[0]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[1]);
+	// if (!tipo_ok)stat->tipi_dato_scorretti++;
 
-				Variabile* var = malloc(sizeof(Variabile));
-				var->nome = strdup(parti_var[2]);
-				var->tipo = strdup(buffer_tipo);
-				var->riga_dichiarata = riga;
-				var->usata = false;	
-				var->storage = ha_storage ? strdup(stor) : NULL;
-				var->qual = ha_qual ? strdup(qual) : NULL;
-				list_append(var_dichiarate, var);
-			}
-		}
-		else{ //var senza assegnazione 'unsigned long long nome;
-			//unsigned long long a;
-			risultato=controllaLongShort_quattro_sessione(parti_var,stat);
-			if (risultato){
-				char buffer_tipo[256] = {0};
-				strcat(buffer_tipo, parti_var[0]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[1]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[2]);
+	//-- controllo nome
+	bool nome_ok = controllaNome(parti_var[idx_nome], stat);
 
-				Variabile* var = malloc(sizeof(Variabile));
-				var->nome = strdup(parti_var[3]);
-				var->tipo = strdup(buffer_tipo);
-				var->riga_dichiarata = riga;
-				var->usata = false;	
-				var->storage = ha_storage ? strdup(stor) : NULL;
-				var->qual = ha_qual ? strdup(qual) : NULL;
-				list_append(var_dichiarate, var);
-			}
+	//controllo valore assegnato?
+	// bool valore_ok = true;
+	// if(ha_valore && nome_ok){
+	// 	valore_ok = controlloValoreAssegnato(parti_var[idx_valore], tipo_base);
+	// 	if (!valore_ok){
+	// 		printf("[controllaDichiarazioneVariabile] valore '%s' non valido per tipo '%s'\n", parti_var[idx_valore], tipo_base);
+	// 	}
+	// }
+
+	bool risultato = tipo_ok && nome_ok;
+
+	//ricostruisci il tipo completo come stringa unica
+	if (risultato){
+		char buffer_tipo[256] = {0};
+		for (int i = 0; i < n_tipo; i++){
+			if (i > 0) strcat(buffer_tipo, " "); //concatena spazio
+			strcat(buffer_tipo, parti_var[i]);	//concatena [tipo]
 		}
+
+		Variabile* var = malloc(sizeof(Variabile));
+		var->nome = strdup(parti_var[idx_nome]);
+		var->tipo = strdup(buffer_tipo);
+		var->riga_dichiarata = riga;
+		var->usata = false;
+		var->storage = ha_storage ? strdup(stor) : NULL;
+		var->qual = ha_qual ? strdup(qual) : NULL;
+		list_append(var_dichiarate, var);
 	}
-	else if(n_parti == 5){	//"unsigned short int a = 10" "long long int a=10"
-		if(strchr(str,'=')){
-			risultato = controllaLongShort_quattro_sessione(parti_var,stat); //unsigned long long a = 10
-			if (risultato){
-				char buffer_tipo[256] = {0};
-				strcat(buffer_tipo, parti_var[0]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[1]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[2]);
-				
 
-				Variabile* var = malloc(sizeof(Variabile));
-				var->nome = strdup(parti_var[3]);
-				var->tipo = strdup(buffer_tipo);
-				var->riga_dichiarata = riga;
-				var->usata = false;	
-				var->storage = ha_storage ? strdup(stor) : NULL;
-				var->qual = ha_qual ? strdup(qual) : NULL;
-				list_append(var_dichiarate, var);
-			}
-		}
-		else{ //unsigned long long int a;
-			//unsigned long long int a;
-			risultato = controllaLongShort_cinque_sessione(parti_var,stat);
-			if (risultato){
-				char buffer_tipo[256] = {0};
-				strcat(buffer_tipo, parti_var[0]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[1]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[2]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[3]);
-
-				Variabile* var = malloc(sizeof(Variabile));
-				var->nome = strdup(parti_var[4]);
-				var->tipo = strdup(buffer_tipo);
-				var->riga_dichiarata = riga;
-				var->usata = false;	
-				var->storage = ha_storage ? strdup(stor) : NULL;
-				var->qual = ha_qual ? strdup(qual) : NULL;
-				list_append(var_dichiarate, var);
-			}
-		}
-	}
-	else if(n_parti == 6){	//"unsigned long long a = 10"
-		if(ricerca(str,"=")){
-			risultato = controllaLongShort_cinque_sessione(parti_var,stat);
-			if (risultato){
-				char buffer_tipo[256] = {0};
-				strcat(buffer_tipo, parti_var[0]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[1]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[2]);
-				strcat(buffer_tipo, " ");
-				strcat(buffer_tipo, parti_var[3]);
-
-				Variabile* var = malloc(sizeof(Variabile));
-				var->nome = strdup(parti_var[4]);
-				var->tipo = strdup(buffer_tipo);
-				var->riga_dichiarata = riga;
-				var->usata = false;	
-				var->storage = ha_storage ? strdup(stor) : NULL;
-				var->qual = ha_qual ? strdup(qual) : NULL;
-				list_append(var_dichiarate, var);
-			}
-		}
-		else{
-			risultato = 0;
-		}
-	}
-	
-    free(parti_var_copia);
-    free(copia_str);
+	free(parti_var_copia);
+	free(copia_str);
+	if (stor) free(stor);
+	if (qual) free(qual);
 	return risultato;
 }
+
+
 
 /*
 controlla se la riga corrente è una valida dichiarazione del main().
@@ -1015,18 +1179,27 @@ bool controllaTipoENomeTypedef(char* str, int n_riga, List* struct_definite, Sta
 
 	bool tipo_valido = false;
 
-    if (n_tokens == 2){ //int alias
-        tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1], stats);
-    }
-    else if (n_tokens == 3){	//long long alias
-        tipo_valido = controllaLongShort_tre_sessione(tokens, stats);
-    }
-    else if (n_tokens == 4){	//unsigned long long alias
-        tipo_valido = controllaLongShort_quattro_sessione(tokens, stats);
-    }
-    else if (n_tokens == 5){	//unsigned long long int alias
-        tipo_valido = controllaLongShort_cinque_sessione(tokens, stats);
-    }
+    // if (n_tokens == 2){ //int alias
+    //     tipo_valido = controlloTipo(tokens[0], struct_definite) && controllaNomeAliasStruct(tokens[1], stats);
+    // }
+    // else if (n_tokens == 3){	//long long alias
+    //     tipo_valido = controllaLongShort_tre_sessione(tokens, stats);
+    // }
+    // else if (n_tokens == 4){	//unsigned long long alias
+    //     tipo_valido = controllaLongShort_quattro_sessione(tokens, stats);
+    // }
+    // else if (n_tokens == 5){	//unsigned long long int alias
+    //     tipo_valido = controllaLongShort_cinque_sessione(tokens, stats);
+    // }
+
+	if (n_tokens == 2){
+		tipo_valido = controlloTipo(tokens[0], struct_definite, stats) && controllaNomeAliasStruct(tokens[1], stats);
+	}
+	else{ //tipo composto
+		char tipo_base_alias[32] = {0};
+		tipo_valido = check_tipo_composto(tokens, n_tokens-1, tipo_base_alias) && controllaNomeAliasStruct(tokens[n_tokens-1], stats);
+	}
+
 
     if (!tipo_valido){
         free(copia);
@@ -1296,13 +1469,19 @@ List* check_file(char* filename, Statistiche* stats){
 			}
 
 
-			//controllo dichiarazione delle variabili
-			if(controllaDichiarazioneVariabile(pulito, n_riga, struct_definite, var_dichiarate, stats)){
-				// Variabile
-				stats->variabili_controllate++;	//conta solo dichiarazione valida di var
+			// //controllo dichiarazione delle variabili
+			// if(controllaDichiarazioneVariabile(pulito, n_riga, struct_definite, var_dichiarate, stats)){
+			// 	// Variabile
+			// 	stats->variabili_controllate++;	//conta solo dichiarazione valida di var
+			// 	printf("[checkfile] variabile valida '%s' alla riga %i\n", pulito, n_riga);
+			// 	//adrebbe aggiunto alla lista delle variabili dichiarate
+			// }
+
+			if(check_dichiarazione_var(pulito, n_riga, struct_definite, var_dichiarate, stats)){
+				stats-> variabili_controllate ++;
 				printf("[checkfile] variabile valida '%s' alla riga %i\n", pulito, n_riga);
-				//adrebbe aggiunto alla lista delle variabili dichiarate
 			}
+
 			// se non è dichiarazione, controlla assegnazione
 			else if (isAssegnazioneValida(pulito,var_dichiarate)){
 				//controllo assegnazione, es: 'a = b + 10;
@@ -1358,126 +1537,126 @@ List* check_file(char* filename, Statistiche* stats){
 	return var_dichiarate;
 }
 
-//funziona ritorna una lista di tutte le variabili dichiarate.
-//setta flag di ogni variabile se è stata utilizzata o non.
-List* controllaUtilizzoVariabili(char *nome_file_in, Statistiche *stats){
-	List* variabili = list_create();	//lista per tenere traccia le variabili
+// //funziona ritorna una lista di tutte le variabili dichiarate.
+// //setta flag di ogni variabile se è stata utilizzata o non.
+// List* controllaUtilizzoVariabili(char *nome_file_in, Statistiche *stats){
+// 	List* variabili = list_create();	//lista per tenere traccia le variabili
 
-	FILE* file = fopen(nome_file_in, "r");
-	if (file == NULL) {
-		printf("[ControlloVariabile] controlla_var_inutilizzate: errore di apertura file\n");
-		return NULL;
-	}
+// 	FILE* file = fopen(nome_file_in, "r");
+// 	if (file == NULL) {
+// 		printf("[ControlloVariabile] controlla_var_inutilizzate: errore di apertura file\n");
+// 		return NULL;
+// 	}
 
-	char riga[512]; //buffer per leggere una riga alla volta
-	int riga_attuale = 0;
+// 	char riga[512]; //buffer per leggere una riga alla volta
+// 	int riga_attuale = 0;
 
-	//ciclo principale che scorre le righe del file
-	//nota: fgets(char *str, int n, FILE *stream):
-	//	str: buffer dove viene salvata la stringa letta
-	//	n: numero massimo di caratteri da leggere
-	//	stream: sorgente da cui leggere
-	//
-	//si ferma sempre al \n, che viene incluso.
-	//aggiunge il terminatore \0 alla fine della riga
-	//restituisce str in caso di successo, NULL in caso di errore o fine file.
-	while (fgets(riga, sizeof(riga), file) != NULL) {	
-		riga_attuale ++;
-		//pulizia riga
-		riga[strcspn(riga, "\n")] = '\0';	//rimuove \n
-		rimuoviCommentoInline(riga);
-		char *riga_pulita = rimuoviSpaziSx(riga);
+// 	//ciclo principale che scorre le righe del file
+// 	//nota: fgets(char *str, int n, FILE *stream):
+// 	//	str: buffer dove viene salvata la stringa letta
+// 	//	n: numero massimo di caratteri da leggere
+// 	//	stream: sorgente da cui leggere
+// 	//
+// 	//si ferma sempre al \n, che viene incluso.
+// 	//aggiunge il terminatore \0 alla fine della riga
+// 	//restituisce str in caso di successo, NULL in caso di errore o fine file.
+// 	while (fgets(riga, sizeof(riga), file) != NULL) {	
+// 		riga_attuale ++;
+// 		//pulizia riga
+// 		riga[strcspn(riga, "\n")] = '\0';	//rimuove \n
+// 		rimuoviCommentoInline(riga);
+// 		char *riga_pulita = rimuoviSpaziSx(riga);
 
 		
-		if(controllaRigaVuota(riga_pulita) == true){
-			//printf("[controllaVarInutilizzata]: riga %i vuota\n", riga_attuale);
-			continue;
-		}
+// 		if(controllaRigaVuota(riga_pulita) == true){
+// 			//printf("[controllaVarInutilizzata]: riga %i vuota\n", riga_attuale);
+// 			continue;
+// 		}
 
-		//ottieni i token per la riga
-		int numero_token;
-		char** tokens = split(riga_pulita, " \t;", &numero_token);
+// 		//ottieni i token per la riga
+// 		int numero_token;
+// 		char** tokens = split(riga_pulita, " \t;", &numero_token);
 
-		/*
-		for(int i = 0; i< numero_token; i++){
-			printf("[TOKENS] : %s \n", tokens[i]);
-		}
-		*/
+// 		/*
+// 		for(int i = 0; i< numero_token; i++){
+// 			printf("[TOKENS] : %s \n", tokens[i]);
+// 		}
+// 		*/
 		
-		//controlla se è una dichiarazione valida di variabile, e lo mette nella lista variabili
-		for (int i = 0; i < numero_token; i++){	//per ogni token
-			//controlla se tokens[i] è un tipo
-			for (int t = 0; tipi_base[t]; t++){	//per ogni tipo
-				if (strcmp(tokens[i], tipi_base[t]) == 0 && i+1 < numero_token){
-					//tronca il nome dell variabile al primo carattere non alfanum (es. =, ;, [)
-					char *candidato = pulisciNomeVariabile(tokens[i+1]);
+// 		//controlla se è una dichiarazione valida di variabile, e lo mette nella lista variabili
+// 		for (int i = 0; i < numero_token; i++){	//per ogni token
+// 			//controlla se tokens[i] è un tipo
+// 			for (int t = 0; tipi_base[t]; t++){	//per ogni tipo
+// 				if (strcmp(tokens[i], tipi_base[t]) == 0 && i+1 < numero_token){
+// 					//tronca il nome dell variabile al primo carattere non alfanum (es. =, ;, [)
+// 					char *candidato = pulisciNomeVariabile(tokens[i+1]);
 
-					//controlla se il token corrente è una funzione
-					//printf("[DEBUG] CANDIDATO var CORRENTE : %s\n", candidato);
-					if (strchr(tokens[i+1], '(') != NULL){
-    					free(candidato);
-						//printf("funzione rilevata alla riga %i\n", riga_attuale);
-   					 	break;  // è una funzione, salta
-					}
-
-
-					//filtra puntatori, array, main
-					if(candidato[0] != '*' && candidato[0] != '[' && strcmp(candidato, "main") != 0 && isalpha(candidato[0])){
-						Variabile* var = malloc(sizeof(Variabile));
-						var->tipo = strdup(tipi_base[t]);
-						var->nome = strdup(candidato);
-						var->riga_dichiarata = riga_attuale;
-						var->usata = false;
-
-						list_append(variabili, var);
-						printf("[ControllaVarInutilizzate] dichiarata '%s' alla riga %d con tipo '%s': \n", var->nome, var->riga_dichiarata, var->tipo);
-					}
-					break; //una dichiarazione alla volta
-				}
-			}
-		}
-	} 
+// 					//controlla se il token corrente è una funzione
+// 					//printf("[DEBUG] CANDIDATO var CORRENTE : %s\n", candidato);
+// 					if (strchr(tokens[i+1], '(') != NULL){
+//     					free(candidato);
+// 						//printf("funzione rilevata alla riga %i\n", riga_attuale);
+//    					 	break;  // è una funzione, salta
+// 					}
 
 
-	//secondo passaggio per vedere l'utilizzo
-	rewind(file);
-	riga_attuale = 0;
+// 					//filtra puntatori, array, main
+// 					if(candidato[0] != '*' && candidato[0] != '[' && strcmp(candidato, "main") != 0 && isalpha(candidato[0])){
+// 						Variabile* var = malloc(sizeof(Variabile));
+// 						var->tipo = strdup(tipi_base[t]);
+// 						var->nome = strdup(candidato);
+// 						var->riga_dichiarata = riga_attuale;
+// 						var->usata = false;
 
-	while (fgets(riga, sizeof(riga), file)) {
-		riga_attuale++;
-		riga[strcspn(riga, "\n")] = '\0';
-		char *riga_pulita = rimuoviSpaziSx(riga);
-		//se la riga corrente è commento o #include o vuota, salta.
-		if (controllaRigaCommento(riga_pulita) == true || controllaRigaInclude(riga_pulita) == true || controllaRigaVuota(riga_pulita) == true){
-			continue;
-		}
+// 						list_append(variabili, var);
+// 						printf("[ControllaVarInutilizzate] dichiarata '%s' alla riga %d con tipo '%s': \n", var->nome, var->riga_dichiarata, var->tipo);
+// 					}
+// 					break; //una dichiarazione alla volta
+// 				}
+// 			}
+// 		}
+// 	} 
 
-		int numero_token;
-		char **tokens = split(riga_pulita, " \t=;,()[]{}+-*/<>!&|", &numero_token);
 
-			//per ogni riga scorre una volta le variabili della lista
-		for (size_t i = 0; i < variabili->numero_elementi_attuali; i++)
-		{
-			Variabile *var_att = list_get(variabili, i);
-			if (var_att->usata == true){
-				continue;
-			}
-			//scorre i token della riga attuale
-			for (int t = 0; t < numero_token; t++){
-				char *token_pulito = pulisciNomeVariabile(tokens[t]);
-				if (strcmp(token_pulito, var_att->nome) == 0 && riga_attuale != var_att->riga_dichiarata){
-					//se il token è uguale al nome della variabile e la riga attuale non è la riga in cui la var è stata dichiarata
-					var_att->usata = true;	//allora la var è stata utilizzata
-					printf("variabile '%s' utilizzata alla riga %i\n", var_att->nome, riga_attuale);
-				}
-				free(token_pulito);
-			}
-		}
-		free(tokens);
-	}
-	fclose(file);
-	return variabili;
-}
+// 	//secondo passaggio per vedere l'utilizzo
+// 	rewind(file);
+// 	riga_attuale = 0;
+
+// 	while (fgets(riga, sizeof(riga), file)) {
+// 		riga_attuale++;
+// 		riga[strcspn(riga, "\n")] = '\0';
+// 		char *riga_pulita = rimuoviSpaziSx(riga);
+// 		//se la riga corrente è commento o #include o vuota, salta.
+// 		if (controllaRigaCommento(riga_pulita) == true || controllaRigaInclude(riga_pulita) == true || controllaRigaVuota(riga_pulita) == true){
+// 			continue;
+// 		}
+
+// 		int numero_token;
+// 		char **tokens = split(riga_pulita, " \t=;,()[]{}+-*/<>!&|", &numero_token);
+
+// 			//per ogni riga scorre una volta le variabili della lista
+// 		for (size_t i = 0; i < variabili->numero_elementi_attuali; i++)
+// 		{
+// 			Variabile *var_att = list_get(variabili, i);
+// 			if (var_att->usata == true){
+// 				continue;
+// 			}
+// 			//scorre i token della riga attuale
+// 			for (int t = 0; t < numero_token; t++){
+// 				char *token_pulito = pulisciNomeVariabile(tokens[t]);
+// 				if (strcmp(token_pulito, var_att->nome) == 0 && riga_attuale != var_att->riga_dichiarata){
+// 					//se il token è uguale al nome della variabile e la riga attuale non è la riga in cui la var è stata dichiarata
+// 					var_att->usata = true;	//allora la var è stata utilizzata
+// 					printf("variabile '%s' utilizzata alla riga %i\n", var_att->nome, riga_attuale);
+// 				}
+// 				free(token_pulito);
+// 			}
+// 		}
+// 		free(tokens);
+// 	}
+// 	fclose(file);
+// 	return variabili;
+// }
 
 
 

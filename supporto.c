@@ -122,7 +122,9 @@ char* eliminaSpaziDxSx_v2(char* str){
 	return pulito;
 }
 
-//strtok hen nb bu bi genshin nb
+/*
+separa tipo, nome e valore(se presente) di una dichiarazione di variabile
+*/
 char** split_variabile(char* str, int *numero) {
     if (!str || !numero) return NULL;
     
