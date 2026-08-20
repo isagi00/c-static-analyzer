@@ -1,9 +1,0 @@
-[STAT] salva_statistiche_file_esterno: numero di variabili controllate: 5
-[STAT] salva_statistiche_file_esterno: numero di errori rilevati: 4
-[STAT] salva_statistiche_file_esterno: numero di variabili non utilizzati: 4
-[STAT] salva_statistiche_file_esterno: numero di nomi delle variabili non corretti: 0
-[STAT] salva_statistiche_file_esterno: numero di tipi di dato scorretti:  0
-[STAT] salva_statistiche_file_esterno: Variabile 'c' inutilizzata alla riga 5
-[STAT] salva_statistiche_file_esterno: Variabile 'attivo' inutilizzata alla riga 6
-[STAT] salva_statistiche_file_esterno: Variabile 'lettera' inutilizzata alla riga 7
-[STAT] salva_statistiche_file_esterno: Variabile 'mai_usata' inutilizzata alla riga 8

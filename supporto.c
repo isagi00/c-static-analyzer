@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <stdint.h>
 #include "strutturedati.h"
 
 const char* tipi_base[] = {"int", "float", "double", "char", "long", "bool",	//bool mi sa che non è tipo base
@@ -33,7 +34,7 @@ controlla se la stringa corrente è una keyword.
 -str: stringa
 ritorna true se è una keyword.
 */
-bool is_keyword(char* str){
+bool check_keyword(char* str){
 	//check tipi
 	for (int i = 0; tipi_base[i] != NULL; i++){
 		if (strcmp(str,tipi_base[i]) == 0){
@@ -75,7 +76,7 @@ elimina spazi a destra e sinistra della stringa
 ritorna la stringa con spazi eliminati. 
 es: "hello world"
 */
-char* eliminaSpaziDxSx(char* str){
+char* remove_spazi_dxsx(char* str){
 	if (!str) return NULL;
 
     int n = strlen(str);
@@ -98,7 +99,7 @@ char* eliminaSpaziDxSx(char* str){
 ritorna una copia della stringa con spazi sx e dx rimossi.
 da fare free() al termine dell'utilizzo
 */
-char* eliminaSpaziDxSx_v2(char* str){
+char* remove_spazi_dxsx_v2(char* str){
 	if (!str) return NULL;
 	//gestione stringa vuota
 	int len = strlen(str);
@@ -150,14 +151,14 @@ char** split_variabile(char* str, int *numero) {
 	// tokenizza sinistra
 	char* t = strtok(parte_sinistra, " \t");
 	while (t != NULL && i < 63) {
-		char* trimmed = eliminaSpaziDxSx_v2(t);
+		char* trimmed = remove_spazi_dxsx_v2(t);
 		if (trimmed) vettore[i++] = trimmed;
 		t = strtok(NULL, " \t");
 	}
 
 	// valore a destra (se c'era '=')
 	if (parte_destra) {
-		char* trimmed = eliminaSpaziDxSx_v2(parte_destra);
+		char* trimmed = remove_spazi_dxsx_v2(parte_destra);
 		if (trimmed && strlen(trimmed) > 0) vettore[i++] = trimmed;
 	}
 	free(str_copy);		
@@ -184,7 +185,7 @@ restituisce il puntatore alla prima posizione non spazio.
 - str: stringa in input. es: "		hello world"
 ritorna: "hello world"
 */
-char *rimuoviSpaziSx(char *str){
+char *remove_spazi_sx(char *str){
 	//str = puntatore
 	while(*str == ' ' || *str == '\t'){
 		str++;
@@ -196,8 +197,8 @@ char *rimuoviSpaziSx(char *str){
 restituisce true se è commento.
 str: stringa in input
 */
-bool controllaRigaCommento(char *str){
-	char *rigapulita = rimuoviSpaziSx(str);
+bool check_riga_commento(char *str){
+	char *rigapulita = remove_spazi_sx(str);
 	
 	if (rigapulita[0] == '/' && rigapulita[1] == '/'){
 		return true;
@@ -209,7 +210,7 @@ bool controllaRigaCommento(char *str){
 rimuove i commenti inline. non molto robusto eh dovrebbe gestire casi base 
 modifica la stringa in place
 */
-void rimuoviCommentoInline(char* str){
+void remove_commento_inline(char* str){
 	if(!str) return;
 	int len = strlen(str);
 
@@ -246,35 +247,14 @@ void rimuoviCommentoInline(char* str){
 	return;
 }
 
-/*
-conta il numero di righe del file
-*/
-int contaRigheFile(const char* filename){
-	if (!filename) return -1;
-	FILE* file = fopen(filename, "r");
-	if(!file){
-		printf("[contaRigheFile] errore apertura file");
-		return -1;
-	}
-
-	int righe = 0;
-	char buffer[1024];
-	while(fgets(buffer, sizeof(buffer), file) != NULL){
-		righe++;
-	}
-
-	fclose(file);
-	return righe;
-}
-
 
 
 /*controlla se la riga attuale è un #include valido o non.
 restituisce true se è valido.
 str: stringa in input
 */
-bool controllaRigaInclude(char *str){
-	char *riga_pulita = rimuoviSpaziSx(str);
+bool check_riga_include(char *str){
+	char *riga_pulita = remove_spazi_sx(str);
 	char copia[256];
 	strncpy(copia, riga_pulita, sizeof(copia));
 
@@ -298,8 +278,8 @@ controlla se la riga attuale è una riga vuota (con solo \n).
 restituisce true se è vuoto.
 str: stringa in input
 */
-bool controllaRigaVuota(char *str){
-	char *riga_pulita = rimuoviSpaziSx(str);	//rimuove spazi davanti
+bool check_riga_vuota(char *str){
+	char *riga_pulita = remove_spazi_sx(str);	//rimuove spazi davanti
 	riga_pulita[strcspn(riga_pulita, "\n")] = '\0';	//sostituisce \n con \0 (per sicurezza)
 
 	if (riga_pulita[0] == '\0'){
@@ -309,7 +289,7 @@ bool controllaRigaVuota(char *str){
 }
 
 
-char *pulisciNomeVariabile(char *token){
+char *clean_nome_variabile(char *token){
 	//x=0;
 	char *copia = strdup(token);
 
@@ -322,30 +302,31 @@ char *pulisciNomeVariabile(char *token){
 	return copia;
 }
 
-/* ricompatta una stringa rimuovendo spazi e tab.
-ad esempio: "int argc,     char **      argv    [    ]"
-diventa:	"intargc,char**argv[]"
-- dest: destinazione della stringa compattata
-- src: stringa da compattare
-*/
-void compatta_stringa(char* dest, const char* src){
-	int j = 0;
-	for(int i = 0; src[i] != '\0'; i++){
-		if(src[i] != ' ' && src[i] != '\t'){
-			dest[j] = src[i];
-			j++;
-		}
-	}
-	dest[j] = '\0';	//aggiungi terminatore di stringa
-}
+// /* ricompatta una stringa rimuovendo spazi e tab.
+// ad esempio: "int argc,     char **      argv    [    ]"
+// diventa:	"intargc,char**argv[]"
+// - dest: destinazione della stringa compattata
+// - src: stringa da compattare
+// */
+// void compatta_stringa(char* dest, const char* src){
+// 	int j = 0;
+// 	for(int i = 0; src[i] != '\0'; i++){
+// 		if(src[i] != ' ' && src[i] != '\t'){
+// 			dest[j] = src[i];
+// 			j++;
+// 		}
+// 	}
+// 	dest[j] = '\0';	//aggiungi terminatore di stringa
+// }
 
 
 
 
-int conta_var_inutilizzate(List *vars){
+int count_var_inutilizzate(List *vars){
+
 	//lista vuota
-	if (vars->numero_elementi_attuali==0){
-		return 0;
+	if (vars == NULL || vars->numero_elementi_attuali==0){
+		return -1;
 	}
 	//conta var inutilizzate
 	int count = 0;
@@ -369,21 +350,57 @@ void  salva_statistiche_file_esterno(char *nome_file_output, Statistiche *stats,
 		return;
 	}
 
-	stats->variabili_inutilizzate = conta_var_inutilizzate(var_inutilizzate);
+	stats->variabili_inutilizzate = count_var_inutilizzate(var_inutilizzate);
 
-	//scrittura su file output
-	fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di variabili controllate: %i\n", stats->variabili_controllate);
-	fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di errori rilevati: %i\n", stats->errori_rilevati);
-	fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di variabili non utilizzati: %i\n", stats->variabili_inutilizzate);
-	fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
-	fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di tipi di dato scorretti:  %i\n", stats->tipi_dato_scorretti);
+	// //scrittura su file output
+	// fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di variabili controllate: %i\n", stats->variabili_controllate);
+	// fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di errori rilevati: %i\n", stats->errori_rilevati);
+	// fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di variabili non utilizzati: %i\n", stats->variabili_inutilizzate);
+	// fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
+	// fprintf(file_pointer, "[STAT] salva_statistiche_file_esterno: numero di tipi di dato scorretti:  %i\n", stats->tipi_dato_scorretti);
 
+	// //scrittura nome variabili non usate
+	// for (size_t i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
+	// 	Variabile *var = list_get(var_inutilizzate, i);
+	// 	if (var->usata == false){
+	// 		fprintf(file_pointer,"[STAT] salva_statistiche_file_esterno: Variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
+	// 	}
+	// }
+	fprintf(file_pointer, "------------------ STATISTICHE DI ELABORAZIONE ------------------\n");
+	fprintf(file_pointer, "numero di variabili controllate: %i\n", stats->variabili_controllate);
+	fprintf(file_pointer, "numero di errori rilevati: %i (+ %i var non utilizzate)\n", stats->errori_rilevati, stats->variabili_inutilizzate);
+	fprintf(file_pointer, "numero di variabili non utilizzati: %i\n", stats->variabili_inutilizzate);
+	fprintf(file_pointer, "numero di nomi delle variabili non corretti: %i\n", stats->nomi_variabili_non_corretti);
+	fprintf(file_pointer, "numero di tipi di dato scorretti: %i:\n", stats->tipi_dato_scorretti);
+	fprintf(file_pointer, "-----------------------------------------------------------------\n");
+
+	fprintf(file_pointer, "\n");
+
+	if (stats->errori_rilevati + stats->variabili_inutilizzate != 0){
+		fprintf(file_pointer, "----------------------------- ERRORI ----------------------------\n");
+
+		int total = stats->righe_errore->numero_elementi_attuali;
+		for (int i = 0; i < total; i++){
+			int riga = (int)(intptr_t)list_get(stats-> righe_errore, i);
+			fprintf(file_pointer, "errore alla riga: %i\n", riga);
+		}
+		fprintf(file_pointer, "-----------------------------------------------------------------\n");
+
+
+		fprintf(file_pointer, "\n");
+
+	}
+	
+	if (stats->variabili_inutilizzate != 0){
+		fprintf(file_pointer, "------------------ VARIABILI NON UTILIZZATE ---------------------\n");
 	//scrittura nome variabili non usate
 	for (size_t i = 0; i < var_inutilizzate->numero_elementi_attuali; i++){
 		Variabile *var = list_get(var_inutilizzate, i);
 		if (var->usata == false){
-			fprintf(file_pointer,"[STAT] salva_statistiche_file_esterno: Variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
+			fprintf(file_pointer, "variabile '%s' inutilizzata alla riga %i\n", var->nome, var->riga_dichiarata);
 		}
+	}
+	fprintf(file_pointer, "-----------------------------------------------------------------\n");
 	}
 
 	fclose(file_pointer);
@@ -395,7 +412,7 @@ void  salva_statistiche_file_esterno(char *nome_file_output, Statistiche *stats,
 //stampa statistiche su terminale
 void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate){
 
-	stats->variabili_inutilizzate = conta_var_inutilizzate(var_inutilizzate);
+	stats->variabili_inutilizzate = count_var_inutilizzate(var_inutilizzate);
 
 	// printf("[STAT] stampa_statistiche_su_terminale: numero di variabili controllate: %i\n", stats->variabili_controllate);
 	// printf("[STAT] stampa_statistiche_su_terminale: numero di errori rilevati: %i\n", stats->errori_rilevati);
@@ -447,7 +464,7 @@ void stampa_statistiche_su_terminale(Statistiche *stats, List *var_inutilizzate)
  * token: token da controllare
  * ritorna true se è valido.
  */
-bool isInteroValido(char* token){
+bool check_intero_valido(char* token){
 	if (!token) return false;
 	size_t i=0;
 
@@ -461,14 +478,14 @@ bool isInteroValido(char* token){
 
 	//ci deve essere una cifra dopo il segno
 	if (token[i] == '\0'){
-		// printf("[isInteroValido] intero '%s' non valido \n", token);
+		// printf("[check_intero_valido] intero '%s' non valido \n", token);
  		return false;
 	}
 
 	//resto devono esere cifre
 	while (token[i]){
 		if (!isdigit(token[i])){
-			// printf("[isInteroValido] intero '%s' non valido \n", token);
+			// printf("[check_intero_valido] intero '%s' non valido \n", token);
 			return false;
 		}
 		i++;
@@ -483,9 +500,9 @@ token: token da controllare
 varibili: List, con Variabile
 ritorna true se il token è una variabile int.
 */
-bool isVariabileIntDichiarata(char* token, List* variabili){
+bool check_var_int_dichiarata(char* token, List* variabili){
 	if (!token || !variabili) return false;
-	char* pulito = eliminaSpaziDxSx_v2(token);
+	char* pulito = remove_spazi_dxsx_v2(token);
 	for (size_t i = 0; i < variabili->numero_elementi_attuali; i++){
 		Variabile* var = list_get(variabili,i);
 		if (var && strcmp(pulito, var->nome) == 0 && strcmp(var->tipo, "int") == 0){
@@ -493,7 +510,7 @@ bool isVariabileIntDichiarata(char* token, List* variabili){
 			return true;
 		}
 	}
-	printf("[isVariabileIntDichiarata] variabile '%s' non dichiarata o di tipo non int \n", pulito);
+	printf("[check_var_int_dichiarata] variabile '%s' non dichiarata o di tipo non int \n", pulito);
 	free(pulito);
 	return false;
 }
@@ -505,7 +522,7 @@ espressione: stringa del tipo 'a + b + 10'
 variabili: List con Variabile al suo interno
 ritorna true se l'espressione è valida
 */
-bool convalidaEspressioneReturn(char* espressione, List* variabili){
+bool check_espressione_dopo_return(char* espressione, List* variabili){
 	if (!espressione || !variabili) return false;
 	//espressione sarà del tipo : 'a + zhgey - 69'
 
@@ -542,10 +559,10 @@ bool convalidaEspressioneReturn(char* espressione, List* variabili){
 		copia[len_copia] = '\0';
 
 		//controlla se è un numero
-		if (isInteroValido(copia)) continue;
+		if (check_intero_valido(copia)) continue;
 
 		//controlla se è una variabile int dichiarata
-		if (isVariabileIntDichiarata(copia, variabili)) continue;
+		if (check_var_int_dichiarata(copia, variabili)) continue;
 
 		return false; //token non valido.
 	}
@@ -562,7 +579,7 @@ controlla la correttezza del return del main(). controlla casi del tipo:
 	return a + b + 10 - 420 ...
 ritorna true se il return è dichiarato correttamente.
 */
-bool controllaReturnValido(char* str, List* variabili){
+bool check_return_valido(char* str, List* variabili){
 	if (!str) return false;
 	if (!variabili) return false;
 
@@ -596,7 +613,7 @@ bool controllaReturnValido(char* str, List* variabili){
 		if(!risultato){
 			for (size_t i = 0; i < strlen(tokens[1]); i++){
 				if (!isdigit(tokens[1][i])){
-					printf("[controllaReturnValido] espressione di return non valido: '%s' \n", tokens[1]);
+					printf("[check_return_valido] espressione di return non valido: '%s' \n", tokens[1]);
 					risultato = false;
 					break;
 				} 
@@ -615,7 +632,7 @@ bool controllaReturnValido(char* str, List* variabili){
 			if (i < n_parti - 1) strcat(espressione, " ");	//aggiunge spazio tra i token tranne sull'ultimo
 		}	
 
-		if (convalidaEspressioneReturn(espressione, variabili)){
+		if (check_espressione_dopo_return(espressione, variabili)){
 			free(tokens);
 			return true;
 		} 
@@ -628,7 +645,7 @@ bool controllaReturnValido(char* str, List* variabili){
 
 
 
-bool isAssegnazioneValida(char* str, List* vars){
+bool check_assegnazione_valida(char* str, List* vars){
 	//controllo sulla riga, controlla che non inizi con una kw.
 	char* copia = strdup(str);
 	int n_parole;
@@ -639,7 +656,7 @@ bool isAssegnazioneValida(char* str, List* vars){
 		return false;
 	}
 	//controlla se il primo token è una kw
-	if (is_keyword(parole[0])){
+	if (check_keyword(parole[0])){
 		free(copia); free(parole);
 		return false;
 	}
@@ -681,8 +698,8 @@ bool isAssegnazioneValida(char* str, List* vars){
 
 	//rhs: marca le variabili che compaiono come usate
 	int n_rhs;
-	char** right = split(rhs, " \t,+-*/", &n_rhs);
-	for (int r = 0; r < n_lhs; r++){
+	char** right = split(rhs, " \t,+-*&/", &n_rhs);
+	for (int r = 0; r < n_rhs; r++){
 		char* attuale = right[r];
 		if (attuale == NULL) {
 			continue;
@@ -698,24 +715,6 @@ bool isAssegnazioneValida(char* str, List* vars){
 	free(lhs); free(rhs);
 	free(right);
 	return true;
-}
-
-char* trovaTipoVar(char* dichiarazione){
-	int n_tokens;
-	char* copia = strdup(dichiarazione);
-	char** tokens = split_variabile(copia, &n_tokens);
-
-	for (int i = 0; i< n_tokens; i++){
-		char* token = tokens[i];
-		for (int j = 0; tipi_base[j] != NULL; j++){
-			if (strcmp(token, tipi_base[j]) == 0){
-				free(tokens);
-				return token;
-			}
-		}
-	}
-	free(tokens);
-	return NULL;
 }
 
 /*
@@ -746,7 +745,7 @@ Esempio output:
 [Struct] riga 5: tag='Point' alias=[Point]
 [Struct] riga 10: tag='Tag' alias=[Vec, *VecPtr]
 */
-void stampaStructDef(StructDef* sd) {
+void print_structdef(StructDef* sd) {
     if (!sd) {
         printf("[Struct] NULL\n");
         return;
@@ -772,6 +771,18 @@ void stampaStructDef(StructDef* sd) {
     printf("]\n");
 }
 
+/*
+stampa le stringhe dell'array dato. usato rigorosamente dopo il split. 
+- parole: array di stringhe. es : ["hello", "world"]
+- numero_parole: numero di stringhe all'interno dell'array.
+*/
+void print_array_da_split(char **parole, int numero_parole) {
+    printf("Contenuto di parole_split_pv (numero_parole = %d):\n", numero_parole);
+    for (int i = 0; i < numero_parole; i++) {
+        printf("[%d]: '%s'\n", i, parole[i]);
+    }
+}
+
 _Bool ricerca_array(char *str, const char *arr[]){
 	if(!str||!arr){return 	0;}
 
@@ -788,7 +799,7 @@ _Bool ricerca_array(char *str, const char *arr[]){
 /*
 rimpiazza asterischi con spazi in-place
 */
-void elimina_asterischi(char *str){
+void remove_asterischi(char *str){
 	for (size_t i = 0; i < strlen(str); i++){
 		if (str[i] == '*'){
 			str[i] = ' ';

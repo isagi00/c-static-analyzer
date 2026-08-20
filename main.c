@@ -66,6 +66,12 @@ int main(int argc, char *argv[]){
         }
     }
 
+    if (opzione_input == false){
+        printf("[main] errore: l'opzione -i/--in <file.c> è obbligatoria\n");
+        printf("[main] utilizzo: -i <file_in.c> [-o <file_out>] [-v] \n ");
+        return -1;
+    }
+
     // //salva le statistiche su un file esterno o stampa su terminale
     // printf("===========================[inizio analisi]===========================\n \n");
 
@@ -86,7 +92,10 @@ int main(int argc, char *argv[]){
     //             var->nome, var->tipo, var->storage, var->qual, var->riga_dichiarata);
     // }
     
-
+    if (variabili_dichiarate == NULL){
+        printf("[main] impossibile completare analisi del file '%s' \n", nome_file_input);
+        return -1;
+    }
 
     if (opzione_output == true && opzione_verbose == true){
         salva_statistiche_file_esterno(nome_file_output, &stats, variabili_dichiarate);
