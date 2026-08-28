@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "ControlloVariabile.h"
+#include "controllovar.h"
 #include "supporto.h"
 // #include "strutturedati.h"
 

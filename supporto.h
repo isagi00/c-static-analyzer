@@ -12,7 +12,7 @@ extern const char* qualificatori[];
 extern const char* storage[];
 extern const char* keywords[];
 
-//cleanup
+
 bool check_keyword(char* str);
 char** split(char* str,char* separatore, int *numeroP);
 char* remove_spazi_dxsx(char* str);
