@@ -1,11 +1,9 @@
-
-
 CC = gcc
-CFLAGS = -Wall -Wextra 
+CFLAGS = -Wall -Wextra
+SRC = main.c controllovar.c strutturedati.c supporto.c
 
-myPreCompiler: main.c ControlloVariabile.c supporto.c strutturedati.c
-	$(CC) $(CFLAGS) -o myPreCompiler main.c ControlloVariabile.c supporto.c strutturedati.c
+myPreCompiler: $(SRC)
+	$(CC) $(CFLAGS) -o myPreCompiler $(SRC)
 
-
-clean: 
+clean:
 	rm -f myPreCompiler
